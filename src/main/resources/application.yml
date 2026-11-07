@@ -1,13 +1,10 @@
-
 server:
-  # ??
   port: 38080
 
 spring:
-  # mysql
   datasource:
-    driver-class-name: com.mysql.jdbc.Driver
-    url: jdbc:mysql://127.0.0.1:3306/oa_system?useUnicode=true&characterEncoding=UTF8&serverTimezone=Asia/Shanghai&useSSL=false
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://127.0.0.1:3306/daily_work_todo?useUnicode=true&characterEncoding=UTF8&serverTimezone=Asia/Shanghai&useSSL=false
     username: root
     password: PORTGASDACE
     hikari:
@@ -20,14 +17,12 @@ spring:
       connection-timeout: 50000
       connection-test-query: SELECT 1
 
-# Mybatis-plus
 mybatis-plus:
   mapper-locations: classpath*:/mapper/*Mapper.xml
-  type-aliases-package: com.oa.server.bo
+  type-aliases-package: com.daily_work_todo.entity
   configuration:
     map-underscore-to-camel-case: true
 
-# sql??
 logging:
   level:
-    com.oa.server.mapper: debug
+    com.daily_work_todo.mapper: debug

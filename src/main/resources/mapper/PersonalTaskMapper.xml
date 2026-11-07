@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.daily_work_todo.mapper.PersonalTaskMapper">
+
+    <!-- 结果映射 -->
+    <resultMap id="BaseResultMap" type="com.daily_work_todo.entity.PersonalTask">
+        <id property="ptId" column="pt_id" jdbcType="VARCHAR"/>
+        <result property="content" column="content" jdbcType="VARCHAR"/>
+        <result property="tagId" column="tag_id" jdbcType="VARCHAR"/>
+        <result property="createdTme" column="created_tme" jdbcType="TIMESTAMP"/>
+        <result property="updatedTime" column="updated_time" jdbcType="TIMESTAMP"/>
+        <result property="priorityId" column="priority_id" jdbcType="VARCHAR"/>
+        <result property="ptStatusId" column="pt_status_id" jdbcType="VARCHAR"/>
+    </resultMap>
+
+    <!-- 通用查询结果列 -->
+    <sql id="Base_Column_List">
+        pt_id, content, tag_id, created_tme, updated_time, priority_id, pt_status_id
+    </sql>
+
+    <!-- 新增 -->
+    <insert id="insert" parameterType="com.daily_work_todo.entity.PersonalTask">
+        insert into personal_task
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="ptId != null">pt_id,</if>
+            <if test="content != null">content,</if>
+            <if test="tagId != null">tag_id,</if>
+            <if test="createdTme != null">created_tme,</if>
+            <if test="updatedTime != null">updated_time,</if>
+            <if test="priorityId != null">priority_id,</if>
+            <if test="ptStatusId != null">pt_status_id,</if>
+        </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="ptId != null">#{ptId},</if>
+            <if test="content != null">#{content},</if>
+            <if test="tagId != null">#{tagId},</if>
+            <if test="createdTme != null">#{createdTme},</if>
+            <if test="updatedTime != null">#{updatedTime},</if>
+            <if test="priorityId != null">#{priorityId},</if>
+            <if test="ptStatusId != null">#{ptStatusId},</if>
+        </trim>
+    </insert>
+
+    <!-- 根据主键删除 -->
+    <delete id="deleteById" parameterType="java.lang.String">
+        delete from personal_task
+        where pt_id = #{ptId}
+    </delete>
+
+    <!-- 根据主键更新 -->
+    <update id="updateById" parameterType="com.daily_work_todo.entity.PersonalTask">
+        update personal_task
+        <set>
+            <if test="content != null">content = #{content},</if>
+            <if test="tagId != null">tag_id = #{tagId},</if>
+            <if test="createdTme != null">created_tme = #{createdTme},</if>
+            <if test="updatedTime != null">updated_time = #{updatedTime},</if>
+            <if test="priorityId != null">priority_id = #{priorityId},</if>
+            <if test="ptStatusId != null">pt_status_id = #{ptStatusId},</if>
+        </set>
+        where pt_id = #{ptId}
+    </update>
+
+    <!-- 根据主键查询 -->
+    <select id="selectById" parameterType="java.lang.String" resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List"/>
+        from personal_task
+        where pt_id = #{ptId}
+    </select>
+
+    <!-- 查询全部 -->
+    <select id="selectAll" resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List"/>
+        from personal_task
+    </select>
+
+</mapper>
