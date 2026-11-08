@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.daily_work_todo.mapper.PtStatusMapper">
+
+    <!-- 结果映射 -->
+    <resultMap id="BaseResultMap" type="com.daily_work_todo.entity.PtStatus">
+        <id property="ptStatusId" column="pt_status_id" jdbcType="VARCHAR"/>
+        <result property="ptStatusName" column="pt_status_name" jdbcType="VARCHAR"/>
+        <result property="ptStatusOrder" column="pt_status_order" jdbcType="INTEGER"/>
+    </resultMap>
+
+    <!-- 通用查询结果列 -->
+    <sql id="Base_Column_List">
+        pt_status_id, pt_status_name, pt_status_order
+    </sql>
+
+    <!-- 新增 -->
+    <insert id="insert" parameterType="com.daily_work_todo.entity.PtStatus">
+        insert into pt_status
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="ptStatusId != null">pt_status_id,</if>
+            <if test="ptStatusName != null">pt_status_name,</if>
+            <if test="ptStatusOrder != null">pt_status_order,</if>
+        </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="ptStatusId != null">#{ptStatusId},</if>
+            <if test="ptStatusName != null">#{ptStatusName},</if>
+            <if test="ptStatusOrder != null">#{ptStatusOrder},</if>
+        </trim>
+    </insert>
+
+    <!-- 根据主键删除 -->
+    <delete id="deleteById" parameterType="java.lang.String">
+        delete from pt_status
+        where pt_status_id = #{ptStatusId}
+    </delete>
+
+    <!-- 根据主键更新 -->
+    <update id="updateById" parameterType="com.daily_work_todo.entity.PtStatus">
+        update pt_status
+        <set>
+            <if test="ptStatusName != null">pt_status_name = #{ptStatusName},</if>
+            <if test="ptStatusOrder != null">pt_status_order = #{ptStatusOrder},</if>
+        </set>
+        where pt_status_id = #{ptStatusId}
+    </update>
+
+    <!-- 根据主键查询 -->
+    <select id="selectById" parameterType="java.lang.String" resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List"/>
+        from pt_status
+        where pt_status_id = #{ptStatusId}
+    </select>
+
+    <!-- 查询全部 -->
+    <select id="selectAll" resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List"/>
+        from pt_status
+    </select>
+
+</mapper>
