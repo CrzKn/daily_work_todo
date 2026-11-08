@@ -14,7 +14,9 @@ import java.util.Date;
  * @since 2026-11-07 20:33:13
  */
 @Data
-public class PersonalTask{
+public class PersonalTask implements Serializable {
+
+    private static final long serialVersionUID = 329215318719369585L;
 //主键
     private String ptId;
 //任务正文（纯文本）

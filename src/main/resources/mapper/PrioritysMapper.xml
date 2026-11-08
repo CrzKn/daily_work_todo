@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.daily_work_todo.mapper.PrioritysMapper">
+
+    <!-- 结果映射 -->
+    <resultMap id="BaseResultMap" type="com.daily_work_todo.entity.Prioritys">
+        <id property="priorityId" column="priority_id" jdbcType="VARCHAR"/>
+        <result property="priorityName" column="priority_name" jdbcType="VARCHAR"/>
+        <result property="priorityOrder" column="priority_order" jdbcType="INTEGER"/>
+    </resultMap>
+
+    <!-- 通用查询结果列 -->
+    <sql id="Base_Column_List">
+        priority_id, priority_name, priority_order
+    </sql>
+
+    <!-- 新增 -->
+    <insert id="insert" parameterType="com.daily_work_todo.entity.Prioritys">
+        insert into prioritys
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="priorityId != null">priority_id,</if>
+            <if test="priorityName != null">priority_name,</if>
+            <if test="priorityOrder != null">priority_order,</if>
+        </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="priorityId != null">#{priorityId},</if>
+            <if test="priorityName != null">#{priorityName},</if>
+            <if test="priorityOrder != null">#{priorityOrder},</if>
+        </trim>
+    </insert>
+
+    <!-- 根据主键删除 -->
+    <delete id="deleteById" parameterType="java.lang.String">
+        delete from prioritys
+        where priority_id = #{priorityId}
+    </delete>
+
+    <!-- 根据主键更新 -->
+    <update id="updateById" parameterType="com.daily_work_todo.entity.Prioritys">
+        update prioritys
+        <set>
+            <if test="priorityName != null">priority_name = #{priorityName},</if>
+            <if test="priorityOrder != null">priority_order = #{priorityOrder},</if>
+        </set>
+        where priority_id = #{priorityId}
+    </update>
+
+    <!-- 根据主键查询 -->
+    <select id="selectById" parameterType="java.lang.String" resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List"/>
+        from prioritys
+        where priority_id = #{priorityId}
+    </select>
+
+    <!-- 查询全部 -->
+    <select id="selectAll" resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List"/>
+        from prioritys
+    </select>
+
+</mapper>
