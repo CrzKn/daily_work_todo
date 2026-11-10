@@ -1,5 +1,8 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
+import TagManage from './TagManage.vue'
+import StatusManage from './StatusManage.vue'
+import PriorityManage from './PriorityManage.vue'
 
 const modules = [
   { id: 'board', name: '任务看板' },
@@ -8,7 +11,14 @@ const modules = [
   { id: 'priority', name: '任务优先级管理' },
 ]
 
+const moduleComponents = {
+  tag: TagManage,
+  status: StatusManage,
+  priority: PriorityManage,
+}
+
 const activeModule = ref(modules[0].id)
+const activeComponent = computed(() => moduleComponents[activeModule.value] ?? null)
 </script>
 
 <template>
@@ -29,7 +39,8 @@ const activeModule = ref(modules[0].id)
     </aside>
 
     <main class="content">
-      <!-- 页面内容暂时为空 -->
+      <component :is="activeComponent" v-if="activeComponent" />
+      <!-- 任务看板内容暂为空 -->
     </main>
   </div>
 </template>
@@ -82,6 +93,8 @@ const activeModule = ref(modules[0].id)
 
 .content {
   flex: 1;
+  min-width: 0;
   background: #f3f4f6;
+  overflow-y: auto;
 }
 </style>
