@@ -6,6 +6,8 @@ const props = defineProps({
   idKey: { type: String, required: true },
   fields: { type: Array, required: true },
   api: { type: Object, required: true },
+  showCreate: { type: Boolean, default: true },
+  useModalForValidation: { type: Boolean, default: false },
 })
 
 const rows = ref([])
@@ -14,6 +16,18 @@ const editingId = ref('')
 const editDraft = ref(null)
 const loading = ref(false)
 const message = ref({ type: '', text: '' })
+const modalOpen = ref(false)
+const modalText = ref('')
+
+function openModal(text) {
+  modalText.value = text
+  modalOpen.value = true
+}
+
+function closeModal() {
+  modalOpen.value = false
+  modalText.value = ''
+}
 
 function buildEmptyForm() {
   const result = {}
@@ -32,7 +46,12 @@ function validate(data) {
     (field) => field.required && (data[field.key] === '' || data[field.key] === null),
   )
   if (missing) {
-    showMessage('error', `请填写${missing.label}`)
+    const text = `请填写${missing.label}`
+    if (props.useModalForValidation) {
+      openModal(text)
+    } else {
+      showMessage('error', text)
+    }
     return false
   }
   return true
@@ -165,7 +184,10 @@ onMounted(loadList)
           <thead>
             <tr>
               <th>ID</th>
-              <th v-for="field in fields" :key="field.key">{{ field.label }}</th>
+              <th v-for="field in fields" :key="field.key">
+                {{ field.label }}
+                <span v-if="field.tooltip" class="tip" :data-tip="field.tooltip" aria-label="说明">?</span>
+              </th>
               <th class="op-col">操作</th>
             </tr>
           </thead>
@@ -201,6 +223,18 @@ onMounted(loadList)
         </table>
       </div>
     </section>
+
+    <Teleport to="body">
+      <div v-if="modalOpen" class="modal-mask" @click.self="closeModal">
+        <div class="modal-box">
+          <div class="modal-icon">!</div>
+          <div class="modal-text">{{ modalText }}</div>
+          <div class="modal-actions">
+            <button type="button" class="btn primary" @click="closeModal">知道了</button>
+          </div>
+        </div>
+      </div>
+    </Teleport>
   </div>
 </template>
 
@@ -407,5 +441,126 @@ onMounted(loadList)
   text-align: center;
   color: #9ca3af;
   padding: 24px 0;
+}
+
+.tip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  margin-left: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #6b7280;
+  background: #e5e7eb;
+  border-radius: 50%;
+  cursor: help;
+  vertical-align: middle;
+  position: relative;
+  line-height: 1;
+}
+
+.tip:hover,
+.tip:focus {
+  color: #111827;
+  background: #d1d5db;
+}
+
+.tip::after {
+  content: attr(data-tip);
+  position: absolute;
+  left: 50%;
+  top: calc(100% + 8px);
+  transform: translateX(-50%);
+  width: 260px;
+  padding: 8px 10px;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.5;
+  color: #ffffff;
+  background: #1f2937;
+  border-radius: 6px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.2);
+  white-space: pre-wrap;
+  z-index: 1000;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s ease;
+}
+
+.tip::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: calc(100% + 2px);
+  transform: translateX(-50%);
+  border: 4px solid transparent;
+  border-bottom-color: #1f2937;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s ease;
+  z-index: 1000;
+}
+
+.tip:hover::after,
+.tip:hover::before,
+.tip:focus::after,
+.tip:focus::before {
+  opacity: 1;
+}
+
+.modal-mask {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+}
+
+.modal-box {
+  width: 320px;
+  padding: 28px 24px 20px;
+  background: #ffffff;
+  border-radius: 10px;
+  text-align: center;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.2);
+  animation: modalPop 0.18s ease-out;
+}
+
+@keyframes modalPop {
+  from {
+    opacity: 0;
+    transform: scale(0.92);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.modal-icon {
+  width: 40px;
+  height: 40px;
+  margin: 0 auto 16px;
+  border-radius: 50%;
+  background: #fef2f2;
+  color: #ef4444;
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 40px;
+}
+
+.modal-text {
+  margin-bottom: 20px;
+  font-size: 15px;
+  color: #374151;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: center;
 }
 </style>

@@ -1,5 +1,6 @@
 <script setup>
 import { ref, computed } from 'vue'
+import TaskBoard from './TaskBoard.vue'
 import TagManage from './TagManage.vue'
 import StatusManage from './StatusManage.vue'
 import PriorityManage from './PriorityManage.vue'
@@ -12,6 +13,7 @@ const modules = [
 ]
 
 const moduleComponents = {
+  board: TaskBoard,
   tag: TagManage,
   status: StatusManage,
   priority: PriorityManage,
@@ -40,7 +42,6 @@ const activeComponent = computed(() => moduleComponents[activeModule.value] ?? n
 
     <main class="content">
       <component :is="activeComponent" v-if="activeComponent" />
-      <!-- 任务看板内容暂为空 -->
     </main>
   </div>
 </template>

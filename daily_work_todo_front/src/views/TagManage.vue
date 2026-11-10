@@ -8,5 +8,11 @@ const fields = [{ key: 'tagName', label: '标签名称', type: 'text', required:
 </script>
 
 <template>
-  <EntityManager title="标签管理" id-key="tagId" :fields="fields" :api="api" />
+  <EntityManager
+    title="标签管理"
+    id-key="tagId"
+    :fields="fields"
+    :api="api"
+    :use-modal-for-validation="true"
+  />
 </template>
