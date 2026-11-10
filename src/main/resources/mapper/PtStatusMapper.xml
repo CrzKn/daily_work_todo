@@ -14,50 +14,7 @@
         pt_status_id, pt_status_name, pt_status_order
     </sql>
 
-    <!-- 新增 -->
-    <insert id="insert" parameterType="com.daily_work_todo.entity.PtStatus">
-        insert into pt_status
-        <trim prefix="(" suffix=")" suffixOverrides=",">
-            <if test="ptStatusId != null">pt_status_id,</if>
-            <if test="ptStatusName != null">pt_status_name,</if>
-            <if test="ptStatusOrder != null">pt_status_order,</if>
-        </trim>
-        <trim prefix="values (" suffix=")" suffixOverrides=",">
-            <if test="ptStatusId != null">#{ptStatusId},</if>
-            <if test="ptStatusName != null">#{ptStatusName},</if>
-            <if test="ptStatusOrder != null">#{ptStatusOrder},</if>
-        </trim>
-    </insert>
-
-    <!-- 根据主键删除 -->
-    <delete id="deleteById" parameterType="java.lang.String">
-        delete from pt_status
-        where pt_status_id = #{ptStatusId}
-    </delete>
-
-    <!-- 根据主键更新 -->
-    <update id="updateById" parameterType="com.daily_work_todo.entity.PtStatus">
-        update pt_status
-        <set>
-            <if test="ptStatusName != null">pt_status_name = #{ptStatusName},</if>
-            <if test="ptStatusOrder != null">pt_status_order = #{ptStatusOrder},</if>
-        </set>
-        where pt_status_id = #{ptStatusId}
-    </update>
-
-    <!-- 根据主键查询 -->
-    <select id="selectById" parameterType="java.lang.String" resultMap="BaseResultMap">
-        select
-        <include refid="Base_Column_List"/>
-        from pt_status
-        where pt_status_id = #{ptStatusId}
-    </select>
-
-    <!-- 查询全部 -->
-    <select id="selectAll" resultMap="BaseResultMap">
-        select
-        <include refid="Base_Column_List"/>
-        from pt_status
-    </select>
+    <!-- 新增、按主键删除/更新/查询、查询全部均使用 MyBatis-Plus BaseMapper 内置实现， -->
+    <!-- 此处不再定义 insert、deleteById、updateById、selectById、selectAll，以免覆盖内置方法导致参数名冲突（et） -->
 
 </mapper>

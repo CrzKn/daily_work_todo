@@ -1,6 +1,9 @@
 package com.daily_work_todo.entity;
 
 
+import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableName;
 import com.baomidou.mybatisplus.extension.activerecord.Model;
 import lombok.Data;
 
@@ -14,10 +17,12 @@ import java.util.Date;
  * @since 2026-11-07 20:33:13
  */
 @Data
+@TableName("personal_task")
 public class PersonalTask implements Serializable {
 
     private static final long serialVersionUID = 329215318719369585L;
 //主键
+    @TableId(type = IdType.ASSIGN_UUID)
     private String ptId;
 //任务正文（纯文本）
     private String content;

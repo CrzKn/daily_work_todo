@@ -1,7 +1,5 @@
 package com.daily_work_todo.controller;
 
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.daily_work_todo.entity.PersonalTask;
 import com.daily_work_todo.service.PersonalTaskService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -60,14 +58,5 @@ public class PersonalTaskController {
     @GetMapping("/list")
     public List<PersonalTask> list() {
         return personalTaskService.list();
-    }
-
-    /**
-     * 分页查询个人任务
-     */
-    @GetMapping("/page")
-    public Page<PersonalTask> page(@RequestParam(defaultValue = "1") long current,
-                                   @RequestParam(defaultValue = "10") long size) {
-        return personalTaskService.page(new Page<>(current, size), new QueryWrapper<>());
     }
 }

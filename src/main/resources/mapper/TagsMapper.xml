@@ -13,47 +13,7 @@
         tag_id, tag_name
     </sql>
 
-    <!-- 新增 -->
-    <insert id="insert" parameterType="com.daily_work_todo.entity.Tags">
-        insert into tags
-        <trim prefix="(" suffix=")" suffixOverrides=",">
-            <if test="tagId != null">tag_id,</if>
-            <if test="tagName != null">tag_name,</if>
-        </trim>
-        <trim prefix="values (" suffix=")" suffixOverrides=",">
-            <if test="tagId != null">#{tagId},</if>
-            <if test="tagName != null">#{tagName},</if>
-        </trim>
-    </insert>
-
-    <!-- 根据主键删除 -->
-    <delete id="deleteById" parameterType="java.lang.String">
-        delete from tags
-        where tag_id = #{tagId}
-    </delete>
-
-    <!-- 根据主键更新 -->
-    <update id="updateById" parameterType="com.daily_work_todo.entity.Tags">
-        update tags
-        <set>
-            <if test="tagName != null">tag_name = #{tagName},</if>
-        </set>
-        where tag_id = #{tagId}
-    </update>
-
-    <!-- 根据主键查询 -->
-    <select id="selectById" parameterType="java.lang.String" resultMap="BaseResultMap">
-        select
-        <include refid="Base_Column_List"/>
-        from tags
-        where tag_id = #{tagId}
-    </select>
-
-    <!-- 查询全部 -->
-    <select id="selectAll" resultMap="BaseResultMap">
-        select
-        <include refid="Base_Column_List"/>
-        from tags
-    </select>
+    <!-- 新增 / 删除 / 更新 / 按主键查询 均由 MyBatis-Plus BaseMapper 提供， -->
+    <!-- XML 中不得再使用 insert、deleteById、updateById、selectById 这些 id，否则会覆盖内置实现并报参数找不到 -->
 
 </mapper>

@@ -61,13 +61,4 @@ public class PtStatusController {
     public List<PtStatus> list() {
         return ptStatusService.list();
     }
-
-    /**
-     * 分页查询任务状态
-     */
-    @GetMapping("/page")
-    public Page<PtStatus> page(@RequestParam(defaultValue = "1") long current,
-                               @RequestParam(defaultValue = "10") long size) {
-        return ptStatusService.page(new Page<>(current, size), new QueryWrapper<>());
-    }
 }

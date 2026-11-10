@@ -61,13 +61,4 @@ public class TagsController {
     public List<Tags> list() {
         return tagsService.list();
     }
-
-    /**
-     * 分页查询标签
-     */
-    @GetMapping("/page")
-    public Page<Tags> page(@RequestParam(defaultValue = "1") long current,
-                           @RequestParam(defaultValue = "10") long size) {
-        return tagsService.page(new Page<>(current, size), new QueryWrapper<>());
-    }
 }
