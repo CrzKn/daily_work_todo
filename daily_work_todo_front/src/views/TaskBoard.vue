@@ -119,23 +119,42 @@ function closeDetail() {
   deleteConfirmOpen.value = false
 }
 
-async function saveTaskField(field) {
-  const task = tasks.value.find((t) => t.ptId === selectedTaskId.value)
-  if (!task || !selectedTask.value) return
-  if ((task[field] || '') === (selectedTask.value[field] || '')) return
-  const oldValue = task[field]
-  // 下拉框“不设置”为空字符串，提交时转为 null
-  const payload = { ...selectedTask.value }
-  if (payload.priorityId === '') payload.priorityId = null
-  if (payload.tagId === '') payload.tagId = null
+// 遮罩按下/抬起都在遮罩上才允许关闭，避免在输入框内选中文字拖到弹框外误关
+const detailMaskDown = ref(false)
+const createMaskDown = ref(false)
+
+function onDetailMaskUp() {
+  if (detailMaskDown.value) closeDetail()
+  detailMaskDown.value = false
+}
+
+function onCreateMaskUp() {
+  if (createMaskDown.value) closeCreate()
+  createMaskDown.value = false
+}
+
+const saving = ref(false)
+
+async function saveTask() {
+  const task = selectedTask.value
+  if (!task || saving.value) return
+  saving.value = true
   try {
+    const payload = { ...task }
+    if (payload.priorityId === '') payload.priorityId = null
+    if (payload.tagId === '') payload.tagId = null
     const ok = await taskApi.update(payload)
     if (!ok) throw new Error('后端返回失败')
-    task[field] = selectedTask.value[field] || null
+    // 重新拉取，拿到后端写入的更新时间
+    const fresh = await taskApi.getById(task.ptId)
+    selectedTask.value = fresh
+    const idx = tasks.value.findIndex((t) => t.ptId === task.ptId)
+    if (idx !== -1) tasks.value[idx] = { ...tasks.value[idx], ...fresh }
     showMessage('已保存')
   } catch (e) {
-    selectedTask.value[field] = oldValue || ''
     showMessage(`保存失败：${e.message}`)
+  } finally {
+    saving.value = false
   }
 }
 
@@ -319,8 +338,8 @@ onBeforeUnmount(() => {
   </div>
 
   <Teleport to="body">
-    <div v-if="selectedTaskId" class="modal-mask" @click.self="closeDetail">
-      <div class="detail-dialog" role="dialog" aria-modal="true" aria-label="任务详情">
+    <div v-if="selectedTaskId" class="modal-mask" @mousedown.self="detailMaskDown = true" @mouseup.self="onDetailMaskUp">
+      <div class="detail-dialog" role="dialog" aria-modal="true" aria-label="任务详情" @mousedown="detailMaskDown = false">
         <header class="detail-header">
           <h3 class="detail-title">任务详情</h3>
           <button type="button" class="detail-close" @click="closeDetail" aria-label="关闭">×</button>
@@ -337,7 +356,6 @@ onBeforeUnmount(() => {
               class="form-input"
               placeholder="请输入任务标题"
               maxlength="200"
-              @blur="saveTaskField('title')"
             />
           </section>
 
@@ -349,7 +367,6 @@ onBeforeUnmount(() => {
               class="form-textarea"
               placeholder="请输入任务内容"
               rows="5"
-              @blur="saveTaskField('content')"
             ></textarea>
           </section>
 
@@ -359,7 +376,6 @@ onBeforeUnmount(() => {
               id="dt-priority"
               v-model="selectedTask.priorityId"
               class="form-input"
-              @change="saveTaskField('priorityId')"
             >
               <option value="">不设置</option>
               <option v-for="p in priorities" :key="p.priorityId" :value="p.priorityId">{{ p.priorityName }}</option>
@@ -372,7 +388,6 @@ onBeforeUnmount(() => {
               id="dt-tag"
               v-model="selectedTask.tagId"
               class="form-input"
-              @change="saveTaskField('tagId')"
             >
               <option value="">不设置</option>
               <option v-for="t in tags" :key="t.tagId" :value="t.tagId">{{ t.tagName }}</option>
@@ -391,6 +406,7 @@ onBeforeUnmount(() => {
         </div>
 
         <footer v-if="selectedTask && !detailLoading" class="detail-footer">
+          <button type="button" class="btn-save" :disabled="saving" @click="saveTask">{{ saving ? '保存中…' : '保存' }}</button>
           <button type="button" class="btn-delete" @click="askDelete">删除</button>
         </footer>
       </div>
@@ -407,8 +423,8 @@ onBeforeUnmount(() => {
       </div>
     </div>
 
-    <div v-if="showCreate" class="modal-mask" @click.self="closeCreate">
-      <form class="detail-dialog" role="dialog" aria-modal="true" aria-label="新建任务" @submit.prevent="submitCreate">
+    <div v-if="showCreate" class="modal-mask" @mousedown.self="createMaskDown = true" @mouseup.self="onCreateMaskUp">
+      <form class="detail-dialog" role="dialog" aria-modal="true" aria-label="新建任务" @submit.prevent="submitCreate" @mousedown="createMaskDown = false">
         <header class="detail-header">
           <h3 class="detail-title">新建任务</h3>
           <button type="button" class="detail-close" @click="closeCreate" aria-label="关闭">×</button>
@@ -750,9 +766,30 @@ onBeforeUnmount(() => {
 .detail-footer {
   display: flex;
   justify-content: flex-end;
+  gap: 8px;
   padding: 12px 20px;
   border-top: 1px solid #e5e7eb;
   flex-shrink: 0;
+}
+
+.btn-save {
+  padding: 8px 16px;
+  font-size: 14px;
+  color: #ffffff;
+  background: #3b82f6;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.btn-save:hover {
+  background: #2563eb;
+}
+
+.btn-save:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .btn-delete {

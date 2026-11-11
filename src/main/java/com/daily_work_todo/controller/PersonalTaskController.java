@@ -34,7 +34,6 @@ public class PersonalTaskController {
     public boolean save(@RequestBody PersonalTask personalTask) {
         // 创建时间为当前时间，新建时不设置更新时间
         personalTask.setCreatedTme(new Date());
-        personalTask.setUpdatedTime(null);
         personalTask.setPtId(UUID.randomUUID().toString());
         // 默认状态为排序字段最小的任务状态
         PtStatus firstStatus = ptStatusService.lambdaQuery()
@@ -60,6 +59,7 @@ public class PersonalTaskController {
      */
     @PutMapping
     public boolean updateById(@RequestBody PersonalTask personalTask) {
+        personalTask.setUpdatedTime(new Date());
         return personalTaskService.updateById(personalTask);
     }
 
