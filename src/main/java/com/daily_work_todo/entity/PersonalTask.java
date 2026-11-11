@@ -24,6 +24,8 @@ public class PersonalTask implements Serializable {
 //主键
     @TableId(type = IdType.ASSIGN_UUID)
     private String ptId;
+//任务标题
+    private String title;
 //任务正文（纯文本）
     private String content;
 //标签id

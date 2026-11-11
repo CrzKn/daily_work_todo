@@ -1,11 +1,15 @@
 package com.daily_work_todo.controller;
 
 import com.daily_work_todo.entity.PersonalTask;
+import com.daily_work_todo.entity.PtStatus;
 import com.daily_work_todo.service.PersonalTaskService;
+import com.daily_work_todo.service.PtStatusService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Date;
 import java.util.List;
+import java.util.UUID;
 
 /**
  * 个人任务表(PersonalTask)表控制层
@@ -20,11 +24,26 @@ public class PersonalTaskController {
     @Autowired
     private PersonalTaskService personalTaskService;
 
+    @Autowired
+    private PtStatusService ptStatusService;
+
     /**
      * 新增个人任务
      */
     @PostMapping
     public boolean save(@RequestBody PersonalTask personalTask) {
+        // 创建时间为当前时间，新建时不设置更新时间
+        personalTask.setCreatedTme(new Date());
+        personalTask.setUpdatedTime(null);
+        personalTask.setPtId(UUID.randomUUID().toString());
+        // 默认状态为排序字段最小的任务状态
+        PtStatus firstStatus = ptStatusService.lambdaQuery()
+                .orderByAsc(PtStatus::getPtStatusOrder)
+                .last("LIMIT 1")
+                .one();
+        if (firstStatus != null) {
+            personalTask.setPtStatusId(firstStatus.getPtStatusId());
+        }
         return personalTaskService.save(personalTask);
     }
 

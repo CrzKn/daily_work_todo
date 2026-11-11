@@ -11,6 +11,7 @@
         <result property="updatedTime" column="updated_time" jdbcType="TIMESTAMP"/>
         <result property="priorityId" column="priority_id" jdbcType="VARCHAR"/>
         <result property="ptStatusId" column="pt_status_id" jdbcType="VARCHAR"/>
+        <result property="title" column="title" jdbcType="VARCHAR"/>
     </resultMap>
 
     <!-- 通用查询结果列 -->

@@ -20,6 +20,7 @@ export function createCrudApi(base) {
     list: () => request(`${base}/list`),
     save: (data) => request(base, { method: 'POST', body: JSON.stringify(data) }),
     update: (data) => request(base, { method: 'PUT', body: JSON.stringify(data) }),
+    getById: (id) => request(`${base}/${id}`),
     remove: (id) => request(`${base}/${id}`, { method: 'DELETE' }),
   }
 }
