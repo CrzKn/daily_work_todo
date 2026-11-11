@@ -1,10 +1,11 @@
 package com.daily_work_todo.entity;
 
 
+import com.baomidou.mybatisplus.annotation.FieldStrategy;
 import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
-import com.baomidou.mybatisplus.extension.activerecord.Model;
 import lombok.Data;
 
 import java.io.Serializable;
@@ -32,7 +33,8 @@ public class PersonalTask implements Serializable {
     private String tagId;
 //创建时间
     private Date createdTme;
-//更新时间
+//更新时间（ALWAYS：插入时即使为 null 也显式写入，避免被数据库列默认值填充）
+    @TableField(insertStrategy = FieldStrategy.ALWAYS)
     private Date updatedTime;
 //优先级id
     private String priorityId;

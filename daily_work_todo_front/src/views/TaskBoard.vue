@@ -116,6 +116,7 @@ async function openDetail(task) {
 function closeDetail() {
   selectedTaskId.value = ''
   selectedTask.value = null
+  deleteConfirmOpen.value = false
 }
 
 async function saveTaskField(field) {
@@ -135,6 +136,31 @@ async function saveTaskField(field) {
   } catch (e) {
     selectedTask.value[field] = oldValue || ''
     showMessage(`保存失败：${e.message}`)
+  }
+}
+
+const deleteConfirmOpen = ref(false)
+
+function askDelete() {
+  deleteConfirmOpen.value = true
+}
+
+function cancelDelete() {
+  deleteConfirmOpen.value = false
+}
+
+async function confirmDelete() {
+  const task = selectedTask.value
+  deleteConfirmOpen.value = false
+  if (!task) return
+  try {
+    const ok = await taskApi.remove(task.ptId)
+    if (!ok) throw new Error('后端返回失败')
+    tasks.value = tasks.value.filter((t) => t.ptId !== task.ptId)
+    showMessage(`【${task.title || '未命名任务'}】已删除`)
+    closeDetail()
+  } catch (e) {
+    showMessage(`删除失败：${e.message}`)
   }
 }
 
@@ -179,7 +205,8 @@ async function submitCreate() {
 
 function onKeydown(e) {
   if (e.key === 'Escape') {
-    if (showCreate.value) closeCreate()
+    if (deleteConfirmOpen.value) cancelDelete()
+    else if (showCreate.value) closeCreate()
     else if (selectedTaskId.value) closeDetail()
   }
 }
@@ -361,6 +388,21 @@ onBeforeUnmount(() => {
             <div class="detail-label">更新时间</div>
             <div class="detail-value">{{ formatDate(selectedTask.updatedTime) }}</div>
           </section>
+        </div>
+
+        <footer v-if="selectedTask && !detailLoading" class="detail-footer">
+          <button type="button" class="btn-delete" @click="askDelete">删除</button>
+        </footer>
+      </div>
+    </div>
+
+    <div v-if="deleteConfirmOpen" class="modal-mask confirm-mask" @click.self="cancelDelete">
+      <div class="confirm-dialog" role="alertdialog" aria-modal="true" aria-label="删除确认">
+        <div class="confirm-title">删除任务</div>
+        <div class="confirm-text">确定删除任务「{{ selectedTask?.title || '未命名任务' }}」吗？删除后不可恢复。</div>
+        <div class="confirm-actions">
+          <button type="button" class="confirm-btn cancel" @click="cancelDelete">取消</button>
+          <button type="button" class="confirm-btn danger" @click="confirmDelete">确定删除</button>
         </div>
       </div>
     </div>
@@ -703,6 +745,91 @@ onBeforeUnmount(() => {
 .detail-value {
   font-size: 14px;
   color: #111827;
+}
+
+.detail-footer {
+  display: flex;
+  justify-content: flex-end;
+  padding: 12px 20px;
+  border-top: 1px solid #e5e7eb;
+  flex-shrink: 0;
+}
+
+.btn-delete {
+  padding: 8px 16px;
+  font-size: 14px;
+  color: #ffffff;
+  background: #ef4444;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.btn-delete:hover {
+  background: #dc2626;
+}
+
+.confirm-mask {
+  z-index: 3000;
+}
+
+.confirm-dialog {
+  width: 360px;
+  max-width: calc(100vw - 32px);
+  background: #ffffff;
+  border-radius: 10px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.2);
+  padding: 20px;
+  animation: dialogPop 0.18s ease-out;
+}
+
+.confirm-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: #111827;
+  margin-bottom: 8px;
+}
+
+.confirm-text {
+  font-size: 14px;
+  color: #4b5563;
+  line-height: 1.6;
+  margin-bottom: 16px;
+}
+
+.confirm-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.confirm-btn {
+  padding: 7px 14px;
+  font-size: 13px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.confirm-btn.cancel {
+  color: #374151;
+  background: #ffffff;
+  border: 1px solid #d1d5db;
+}
+
+.confirm-btn.cancel:hover {
+  background: #f3f4f6;
+}
+
+.confirm-btn.danger {
+  color: #ffffff;
+  background: #ef4444;
+  border: none;
+}
+
+.confirm-btn.danger:hover {
+  background: #dc2626;
 }
 
 .form-input,
