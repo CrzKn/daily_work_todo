@@ -5,7 +5,13 @@ import { createCrudApi } from '../api/crud'
 const api = createCrudApi('/prioritys')
 
 const fields = [
-  { key: 'priorityName', label: '优先级名称', type: 'text', required: true },
+  {
+    key: 'priorityName',
+    label: '优先级名称',
+    type: 'text',
+    required: true,
+    dotColorKey: 'priorityOrder',
+  },
   {
     key: 'priorityOrder',
     label: '排序',

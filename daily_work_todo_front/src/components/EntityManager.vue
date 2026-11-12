@@ -57,6 +57,21 @@ function validate(data) {
   return true
 }
 
+// 根据指定字段的数值计算颜色：数值越小越接近红色，越大越接近绿色
+function dotColor(key, value) {
+  const nums = rows.value
+    .map((row) => row[key])
+    .filter((v) => v !== null && v !== undefined && v !== '')
+    .map(Number)
+    .filter((n) => Number.isFinite(n))
+  const current = Number(value)
+  if (!Number.isFinite(current) || !nums.length) return 'transparent'
+  const min = Math.min(...nums)
+  const max = Math.max(...nums)
+  const ratio = max === min ? 1 : (current - min) / (max - min)
+  return `hsl(${Math.round(ratio * 120)}, 72%, 45%)`
+}
+
 function handleInput(target, field, event) {
   const raw = event.target.value
   target[field.key] = field.type === 'number' ? (raw === '' ? null : Number(raw)) : raw
@@ -209,7 +224,14 @@ onMounted(loadList)
                 </td>
               </template>
               <template v-else>
-                <td v-for="field in fields" :key="field.key">{{ row[field.key] ?? '' }}</td>
+                <td v-for="field in fields" :key="field.key">
+                  <span
+                    v-if="field.dotColorKey"
+                    class="dot"
+                    :style="{ background: dotColor(field.dotColorKey, row[field.dotColorKey]) }"
+                  ></span>
+                  {{ row[field.key] ?? '' }}
+                </td>
                 <td class="op-cell">
                   <button type="button" class="link primary" @click="startEdit(row)">修改</button>
                   <button type="button" class="link danger" @click="handleDelete(row)">删除</button>
@@ -405,6 +427,15 @@ onMounted(loadList)
   color: #6b7280;
   font-family: Consolas, monospace;
   font-size: 12px;
+}
+
+.dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-right: 6px;
+  border-radius: 50%;
+  vertical-align: middle;
 }
 
 .op-col {

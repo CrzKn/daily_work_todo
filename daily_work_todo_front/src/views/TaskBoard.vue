@@ -13,9 +13,11 @@ const tags = ref([])
 const tasks = ref([])
 const draggedId = ref('')
 const dragOverId = ref('')
+const columnsRef = ref(null)
 const selectedTaskId = ref('')
 const selectedTask = ref(null)
 const detailLoading = ref(false)
+const priorityOpen = ref(false)
 const message = ref('')
 const collapsed = ref({})
 const showCreate = ref(false)
@@ -47,6 +49,75 @@ const columns = computed(() => {
   }
   return result
 })
+
+const priorityNameMap = computed(() => {
+  const map = {}
+  priorities.value.forEach((item) => {
+    map[item.priorityId] = item.priorityName
+  })
+  return map
+})
+
+const tagNameMap = computed(() => {
+  const map = {}
+  tags.value.forEach((item) => {
+    map[item.tagId] = item.tagName
+  })
+  return map
+})
+
+// 与优先级管理页圆点保持一致：排序值越小越红，越大越绿
+const priorityStyleMap = computed(() => {
+  const list = priorities.value.filter(
+    (item) => item.priorityOrder !== null && item.priorityOrder !== undefined && item.priorityOrder !== '',
+  )
+  const nums = list.map((item) => Number(item.priorityOrder)).filter((n) => Number.isFinite(n))
+  const map = {}
+  if (!nums.length) return map
+  const min = Math.min(...nums)
+  const max = Math.max(...nums)
+  list.forEach((item) => {
+    const current = Number(item.priorityOrder)
+    if (!Number.isFinite(current)) return
+    const ratio = max === min ? 1 : (current - min) / (max - min)
+    const hue = Math.round(ratio * 120)
+    map[item.priorityId] = {
+      color: `hsl(${hue}, 72%, 45%)`,
+      background: `hsl(${hue}, 80%, 94%)`,
+    }
+  })
+  return map
+})
+
+const selectedPriorityName = computed(() => {
+  const id = selectedTask.value?.priorityId
+  if (id === '' || id === null || id === undefined) return ''
+  return priorityNameMap.value[id] || ''
+})
+
+const priorityPanelStyle = ref({})
+
+function togglePriority() {
+  if (priorityOpen.value) {
+    priorityOpen.value = false
+    return
+  }
+  const trigger = document.getElementById('dt-priority')
+  if (trigger) {
+    const rect = trigger.getBoundingClientRect()
+    priorityPanelStyle.value = {
+      top: `${rect.bottom + 4}px`,
+      left: `${rect.left}px`,
+      width: `${rect.width}px`,
+    }
+  }
+  priorityOpen.value = true
+}
+
+function selectPriority(id) {
+  if (selectedTask.value) selectedTask.value.priorityId = id
+  priorityOpen.value = false
+}
 
 function formatDate(value) {
   if (!value) return '-'
@@ -117,6 +188,7 @@ function closeDetail() {
   selectedTaskId.value = ''
   selectedTask.value = null
   deleteConfirmOpen.value = false
+  priorityOpen.value = false
 }
 
 // 遮罩按下/抬起都在遮罩上才允许关闭，避免在输入框内选中文字拖到弹框外误关
@@ -225,6 +297,7 @@ function onKeydown(e) {
   if (e.key === 'Escape') {
     if (deleteConfirmOpen.value) cancelDelete()
     else if (showCreate.value) closeCreate()
+    else if (priorityOpen.value) priorityOpen.value = false
     else if (selectedTaskId.value) closeDetail()
   }
 }
@@ -238,6 +311,48 @@ function onDragStart(task, event) {
 function onDragEnd() {
   draggedId.value = ''
   dragOverId.value = ''
+  stopDragScroll()
+}
+
+// 拖动任务到看板左右边缘时自动横向滚动，便于拖到当前视口外的状态列
+const DRAG_SCROLL_EDGE = 80
+const DRAG_SCROLL_MAX_SPEED = 20
+let dragScrollFrame = 0
+let dragPointerX = 0
+let dragPointerY = 0
+
+function onWindowDragOver(event) {
+  if (!draggedId.value) return
+  dragPointerX = event.clientX
+  dragPointerY = event.clientY
+  if (!dragScrollFrame) dragScrollFrame = requestAnimationFrame(autoScrollColumns)
+}
+
+function autoScrollColumns() {
+  dragScrollFrame = 0
+  const el = columnsRef.value
+  if (!el || !draggedId.value) return
+  const rect = el.getBoundingClientRect()
+  if (dragPointerY < rect.top - 60 || dragPointerY > rect.bottom + 60) return
+  let delta = 0
+  if (dragPointerX < rect.left + DRAG_SCROLL_EDGE) {
+    const ratio = (rect.left + DRAG_SCROLL_EDGE - dragPointerX) / DRAG_SCROLL_EDGE
+    delta = -Math.ceil(Math.min(ratio, 1) * DRAG_SCROLL_MAX_SPEED)
+  } else if (dragPointerX > rect.right - DRAG_SCROLL_EDGE) {
+    const ratio = (dragPointerX - (rect.right - DRAG_SCROLL_EDGE)) / DRAG_SCROLL_EDGE
+    delta = Math.ceil(Math.min(ratio, 1) * DRAG_SCROLL_MAX_SPEED)
+  }
+  if (!delta) return
+  const before = el.scrollLeft
+  el.scrollLeft = before + delta
+  if (el.scrollLeft !== before) dragScrollFrame = requestAnimationFrame(autoScrollColumns)
+}
+
+function stopDragScroll() {
+  if (dragScrollFrame) {
+    cancelAnimationFrame(dragScrollFrame)
+    dragScrollFrame = 0
+  }
 }
 
 function onDragOver(column) {
@@ -252,6 +367,7 @@ async function onDrop(column) {
   const taskId = draggedId.value
   draggedId.value = ''
   dragOverId.value = ''
+  stopDragScroll()
   if (!taskId || !column.id) return
 
   const task = tasks.value.find((item) => item.ptId === taskId)
@@ -275,10 +391,13 @@ async function onDrop(column) {
 onMounted(() => {
   loadData()
   window.addEventListener('keydown', onKeydown)
+  window.addEventListener('dragover', onWindowDragOver)
 })
 
 onBeforeUnmount(() => {
   window.removeEventListener('keydown', onKeydown)
+  window.removeEventListener('dragover', onWindowDragOver)
+  stopDragScroll()
 })
 </script>
 
@@ -290,7 +409,7 @@ onBeforeUnmount(() => {
       <button type="button" class="btn-new" @click="openCreate">+ 新建任务</button>
     </header>
 
-    <div class="columns">
+    <div ref="columnsRef" class="columns">
       <section
         v-for="column in columns"
         :key="column.name"
@@ -327,6 +446,21 @@ onBeforeUnmount(() => {
           >
             <div v-if="task.title" class="card-title">{{ task.title }}</div>
             <p v-if="task.content && !collapsed[column.id]" class="card-content">{{ truncate(task.content) }}</p>
+            <div
+              v-if="!collapsed[column.id] && ((task.priorityId && priorityNameMap[task.priorityId]) || (task.tagId && tagNameMap[task.tagId]))"
+              class="card-tags"
+            >
+              <span
+                v-if="task.priorityId && priorityNameMap[task.priorityId]"
+                class="chip priority"
+                :style="priorityStyleMap[task.priorityId]"
+              >
+                优先级：{{ priorityNameMap[task.priorityId] }}
+              </span>
+              <span v-if="task.tagId && tagNameMap[task.tagId]" class="chip tag">
+                {{ tagNameMap[task.tagId] }}
+              </span>
+            </div>
             <p class="card-meta">创建于 {{ formatDateOnly(task.createdTme) }}</p>
           </article>
 
@@ -346,7 +480,7 @@ onBeforeUnmount(() => {
 
         <div v-if="detailLoading" class="detail-loading">加载中…</div>
 
-        <div v-else-if="selectedTask" class="detail-body">
+        <div v-else-if="selectedTask" class="detail-body" @scroll="priorityOpen = false">
           <section class="detail-section">
             <label class="detail-label" for="dt-title">任务标题</label>
             <input
@@ -371,14 +505,39 @@ onBeforeUnmount(() => {
 
           <section class="detail-section">
             <label class="detail-label" for="dt-priority">优先级</label>
-            <select
-              id="dt-priority"
-              v-model="selectedTask.priorityId"
-              class="form-input"
-            >
-              <option value="">不设置</option>
-              <option v-for="p in priorities" :key="p.priorityId" :value="p.priorityId">{{ p.priorityName }}</option>
-            </select>
+            <div class="priority-select" :class="{ open: priorityOpen }">
+              <button
+                id="dt-priority"
+                type="button"
+                class="form-input priority-trigger"
+                @click="togglePriority"
+              >
+                <span class="priority-trigger-text">{{ selectedPriorityName || '不设置' }}</span>
+                <span class="priority-arrow" aria-hidden="true"></span>
+              </button>
+              <div v-if="priorityOpen" class="priority-panel" :style="priorityPanelStyle">
+                <button
+                  type="button"
+                  class="priority-option"
+                  :class="{ active: !selectedPriorityName }"
+                  @click="selectPriority('')"
+                >
+                  <span class="priority-empty">不设置</span>
+                </button>
+                <button
+                  v-for="p in priorities"
+                  :key="p.priorityId"
+                  type="button"
+                  class="priority-option"
+                  :class="{ active: String(p.priorityId) === String(selectedTask.priorityId) }"
+                  @click="selectPriority(p.priorityId)"
+                >
+                  <span class="chip priority" :style="priorityStyleMap[p.priorityId]">
+                    {{ p.priorityName }}
+                  </span>
+                </button>
+              </div>
+            </div>
           </section>
 
           <section class="detail-section">
@@ -409,6 +568,8 @@ onBeforeUnmount(() => {
           <button type="button" class="btn-delete" @click="askDelete">删除</button>
         </footer>
       </div>
+
+      <div v-if="priorityOpen" class="dropdown-backdrop" @mousedown="priorityOpen = false"></div>
     </div>
 
     <div v-if="deleteConfirmOpen" class="modal-mask confirm-mask" @click.self="cancelDelete">
@@ -644,6 +805,33 @@ onBeforeUnmount(() => {
   margin: 0;
   font-size: 12px;
   color: #9ca3af;
+}
+
+.card-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0 0 8px;
+}
+
+.chip {
+  padding: 1px 8px;
+  font-size: 12px;
+  line-height: 18px;
+  border-radius: 10px;
+  white-space: nowrap;
+}
+
+.chip.priority {
+  color: #b45309;
+  background: #fef3c7;
+}
+
+.chip.tag {
+  color: #1d4ed8;
+  background: #ffffff;
+  border: 1px solid currentColor;
+  border-radius: 999px;
 }
 
 .empty {
@@ -892,6 +1080,91 @@ onBeforeUnmount(() => {
 .form-textarea {
   resize: vertical;
   min-height: 90px;
+}
+
+.priority-select {
+  position: relative;
+}
+
+.priority-select.open {
+  z-index: 2401;
+}
+
+.priority-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.priority-trigger-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.priority-arrow {
+  width: 0;
+  height: 0;
+  flex-shrink: 0;
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+  border-top: 5px solid #9ca3af;
+  transition: transform 0.15s;
+}
+
+.priority-select.open .priority-arrow {
+  transform: rotate(180deg);
+}
+
+.priority-panel {
+  position: fixed;
+  z-index: 2402;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 220px;
+  overflow-y: auto;
+  padding: 6px;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  animation: fadeIn 0.12s ease-out;
+}
+
+.priority-option {
+  display: flex;
+  align-items: center;
+  padding: 5px 8px;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  text-align: left;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.priority-option:hover {
+  background: #f3f4f6;
+}
+
+.priority-option.active {
+  background: #eff6ff;
+}
+
+.priority-empty {
+  font-size: 13px;
+  color: #6b7280;
+}
+
+.dropdown-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 2400;
 }
 
 .dialog-footer {
