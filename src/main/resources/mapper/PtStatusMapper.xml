@@ -7,11 +7,12 @@
         <id property="ptStatusId" column="pt_status_id" jdbcType="VARCHAR"/>
         <result property="ptStatusName" column="pt_status_name" jdbcType="VARCHAR"/>
         <result property="ptStatusOrder" column="pt_status_order" jdbcType="INTEGER"/>
+        <result property="deleteStatus" column="delete_status" jdbcType="INTEGER"/>
     </resultMap>
 
     <!-- 通用查询结果列 -->
     <sql id="Base_Column_List">
-        pt_status_id, pt_status_name, pt_status_order
+        pt_status_id, pt_status_name, pt_status_order, delete_status
     </sql>
 
     <!-- 新增、按主键删除/更新/查询、查询全部均使用 MyBatis-Plus BaseMapper 内置实现， -->

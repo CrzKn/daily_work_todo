@@ -27,15 +27,20 @@ public class PrioritysController {
      */
     @PostMapping
     public boolean save(@RequestBody Prioritys prioritys) {
+        // 新增时删除状态默认为 0（未删除）
+        prioritys.setDeleteStatus(0);
         return prioritysService.save(prioritys);
     }
 
     /**
-     * 根据主键删除优先级
+     * 根据主键删除优先级（软删除：将 deleteStatus 置为 1）
      */
     @DeleteMapping("/{id}")
     public boolean removeById(@PathVariable("id") String id) {
-        return prioritysService.removeById(id);
+        Prioritys prioritys = new Prioritys();
+        prioritys.setPriorityId(id);
+        prioritys.setDeleteStatus(1);
+        return prioritysService.updateById(prioritys);
     }
 
     /**
@@ -55,10 +60,12 @@ public class PrioritysController {
     }
 
     /**
-     * 查询全部优先级
+     * 查询全部优先级（仅查询 deleteStatus 为 0 的数据）
      */
     @GetMapping("/list")
     public List<Prioritys> list() {
-        return prioritysService.list();
+        return prioritysService.lambdaQuery()
+                .eq(Prioritys::getDeleteStatus, 0)
+                .list();
     }
 }

@@ -6,11 +6,12 @@
     <resultMap id="BaseResultMap" type="com.daily_work_todo.entity.Tags">
         <id property="tagId" column="tag_id" jdbcType="VARCHAR"/>
         <result property="tagName" column="tag_name" jdbcType="VARCHAR"/>
+        <result property="deleteStatus" column="delete_status" jdbcType="INTEGER"/>
     </resultMap>
 
     <!-- 通用查询结果列 -->
     <sql id="Base_Column_List">
-        tag_id, tag_name
+        tag_id, tag_name, delete_status
     </sql>
 
     <!-- 新增 / 删除 / 更新 / 按主键查询 均由 MyBatis-Plus BaseMapper 提供， -->

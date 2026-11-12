@@ -7,11 +7,12 @@
         <id property="priorityId" column="priority_id" jdbcType="VARCHAR"/>
         <result property="priorityName" column="priority_name" jdbcType="VARCHAR"/>
         <result property="priorityOrder" column="priority_order" jdbcType="INTEGER"/>
+        <result property="deleteStatus" column="delete_status" jdbcType="INTEGER"/>
     </resultMap>
 
     <!-- 通用查询结果列 -->
     <sql id="Base_Column_List">
-        priority_id, priority_name, priority_order
+        priority_id, priority_name, priority_order, delete_status
     </sql>
 
     <!-- 新增、按主键删除/更新/查询、查询全部均使用 MyBatis-Plus BaseMapper 内置实现， -->

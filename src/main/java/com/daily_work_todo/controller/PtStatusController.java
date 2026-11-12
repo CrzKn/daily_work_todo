@@ -27,15 +27,20 @@ public class PtStatusController {
      */
     @PostMapping
     public boolean save(@RequestBody PtStatus ptStatus) {
+        // 新增时删除状态默认为 0（未删除）
+        ptStatus.setDeleteStatus(0);
         return ptStatusService.save(ptStatus);
     }
 
     /**
-     * 根据主键删除任务状态
+     * 根据主键删除任务状态（软删除：将 deleteStatus 置为 1）
      */
     @DeleteMapping("/{id}")
     public boolean removeById(@PathVariable("id") String id) {
-        return ptStatusService.removeById(id);
+        PtStatus ptStatus = new PtStatus();
+        ptStatus.setPtStatusId(id);
+        ptStatus.setDeleteStatus(1);
+        return ptStatusService.updateById(ptStatus);
     }
 
     /**
@@ -55,10 +60,12 @@ public class PtStatusController {
     }
 
     /**
-     * 查询全部任务状态
+     * 查询全部任务状态（仅查询 deleteStatus 为 0 的数据）
      */
     @GetMapping("/list")
     public List<PtStatus> list() {
-        return ptStatusService.list();
+        return ptStatusService.lambdaQuery()
+                .eq(PtStatus::getDeleteStatus, 0)
+                .list();
     }
 }

@@ -27,15 +27,20 @@ public class TagsController {
      */
     @PostMapping
     public boolean save(@RequestBody Tags tags) {
+        // 新增时删除状态默认为 0（未删除）
+        tags.setDeleteStatus(0);
         return tagsService.save(tags);
     }
 
     /**
-     * 根据主键删除标签
+     * 根据主键删除标签（软删除：将 deleteStatus 置为 1）
      */
     @DeleteMapping("/{id}")
     public boolean removeById(@PathVariable("id") String id) {
-        return tagsService.removeById(id);
+        Tags tags = new Tags();
+        tags.setTagId(id);
+        tags.setDeleteStatus(1);
+        return tagsService.updateById(tags);
     }
 
     /**
@@ -55,10 +60,12 @@ public class TagsController {
     }
 
     /**
-     * 查询全部标签
+     * 查询全部标签（仅查询 deleteStatus 为 0 的数据）
      */
     @GetMapping("/list")
     public List<Tags> list() {
-        return tagsService.list();
+        return tagsService.lambdaQuery()
+                .eq(Tags::getDeleteStatus, 0)
+                .list();
     }
 }

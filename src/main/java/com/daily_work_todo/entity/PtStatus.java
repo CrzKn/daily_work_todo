@@ -31,6 +31,10 @@ public class PtStatus implements Serializable {
      * 排序字段
      */
     private Integer ptStatusOrder;
+/**
+     * 删除状态
+     */
+    private Integer deleteStatus;
 
 }
 

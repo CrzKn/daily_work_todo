@@ -26,6 +26,8 @@ public class Prioritys implements Serializable {
     private String priorityName;
 //排序字段
     private Integer priorityOrder;
+//删除状态
+    private Integer deleteStatus;
 
 }
 

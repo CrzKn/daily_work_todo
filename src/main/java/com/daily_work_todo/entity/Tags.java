@@ -24,6 +24,8 @@ public class Tags implements Serializable {
     private String tagId;
 //标签名称
     private String tagName;
+//删除状态
+    private Integer deleteStatus;
 
 }
 
