@@ -66,6 +66,7 @@ public class PrioritysController {
     public List<Prioritys> list() {
         return prioritysService.lambdaQuery()
                 .eq(Prioritys::getDeleteStatus, 0)
+                .orderByAsc(Prioritys::getPriorityOrder)
                 .list();
     }
 }

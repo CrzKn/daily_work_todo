@@ -66,6 +66,7 @@ public class PtStatusController {
     public List<PtStatus> list() {
         return ptStatusService.lambdaQuery()
                 .eq(PtStatus::getDeleteStatus, 0)
+                .orderByAsc(PtStatus::getPtStatusOrder)
                 .list();
     }
 }
