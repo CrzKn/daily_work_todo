@@ -1,6 +1,8 @@
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { createCrudApi } from '../api/crud'
+import { periodicApi } from '../api/periodic'
+import PrioritySelect from '../components/PrioritySelect.vue'
 
 const taskApi = createCrudApi('/personalTask')
 const statusApi = createCrudApi('/ptStatus')
@@ -17,7 +19,6 @@ const columnsRef = ref(null)
 const selectedTaskId = ref('')
 const selectedTask = ref(null)
 const detailLoading = ref(false)
-const priorityOpen = ref(false)
 const message = ref('')
 const collapsed = ref({})
 const showCreate = ref(false)
@@ -89,36 +90,6 @@ const priorityStyleMap = computed(() => {
   return map
 })
 
-const selectedPriorityName = computed(() => {
-  const id = selectedTask.value?.priorityId
-  if (id === '' || id === null || id === undefined) return ''
-  return priorityNameMap.value[id] || ''
-})
-
-const priorityPanelStyle = ref({})
-
-function togglePriority() {
-  if (priorityOpen.value) {
-    priorityOpen.value = false
-    return
-  }
-  const trigger = document.getElementById('dt-priority')
-  if (trigger) {
-    const rect = trigger.getBoundingClientRect()
-    priorityPanelStyle.value = {
-      top: `${rect.bottom + 4}px`,
-      left: `${rect.left}px`,
-      width: `${rect.width}px`,
-    }
-  }
-  priorityOpen.value = true
-}
-
-function selectPriority(id) {
-  if (selectedTask.value) selectedTask.value.priorityId = id
-  priorityOpen.value = false
-}
-
 function formatDate(value) {
   if (!value) return '-'
   const date = new Date(value)
@@ -153,6 +124,12 @@ function showMessage(text) {
 
 async function loadData() {
   try {
+    // 进入看板时检查并生成当天到期的周期任务
+    try {
+      await periodicApi.generate()
+    } catch (e) {
+      // 生成失败不影响看板展示
+    }
     const [statusList, taskList, priorityList, tagList] = await Promise.all([
       statusApi.list(),
       taskApi.list(),
@@ -188,7 +165,6 @@ function closeDetail() {
   selectedTaskId.value = ''
   selectedTask.value = null
   deleteConfirmOpen.value = false
-  priorityOpen.value = false
 }
 
 // 遮罩按下/抬起都在遮罩上才允许关闭，避免在输入框内选中文字拖到弹框外误关
@@ -297,7 +273,6 @@ function onKeydown(e) {
   if (e.key === 'Escape') {
     if (deleteConfirmOpen.value) cancelDelete()
     else if (showCreate.value) closeCreate()
-    else if (priorityOpen.value) priorityOpen.value = false
     else if (selectedTaskId.value) closeDetail()
   }
 }
@@ -480,7 +455,7 @@ onBeforeUnmount(() => {
 
         <div v-if="detailLoading" class="detail-loading">加载中…</div>
 
-        <div v-else-if="selectedTask" class="detail-body" @scroll="priorityOpen = false">
+        <div v-else-if="selectedTask" class="detail-body">
           <section class="detail-section">
             <label class="detail-label" for="dt-title">任务标题</label>
             <input
@@ -505,39 +480,7 @@ onBeforeUnmount(() => {
 
           <section class="detail-section">
             <label class="detail-label" for="dt-priority">优先级</label>
-            <div class="priority-select" :class="{ open: priorityOpen }">
-              <button
-                id="dt-priority"
-                type="button"
-                class="form-input priority-trigger"
-                @click="togglePriority"
-              >
-                <span class="priority-trigger-text">{{ selectedPriorityName || '不设置' }}</span>
-                <span class="priority-arrow" aria-hidden="true"></span>
-              </button>
-              <div v-if="priorityOpen" class="priority-panel" :style="priorityPanelStyle">
-                <button
-                  type="button"
-                  class="priority-option"
-                  :class="{ active: !selectedPriorityName }"
-                  @click="selectPriority('')"
-                >
-                  <span class="priority-empty">不设置</span>
-                </button>
-                <button
-                  v-for="p in priorities"
-                  :key="p.priorityId"
-                  type="button"
-                  class="priority-option"
-                  :class="{ active: String(p.priorityId) === String(selectedTask.priorityId) }"
-                  @click="selectPriority(p.priorityId)"
-                >
-                  <span class="chip priority" :style="priorityStyleMap[p.priorityId]">
-                    {{ p.priorityName }}
-                  </span>
-                </button>
-              </div>
-            </div>
+            <PrioritySelect v-model="selectedTask.priorityId" :priorities="priorities" input-id="dt-priority" />
           </section>
 
           <section class="detail-section">
@@ -569,7 +512,6 @@ onBeforeUnmount(() => {
         </footer>
       </div>
 
-      <div v-if="priorityOpen" class="dropdown-backdrop" @mousedown="priorityOpen = false"></div>
     </div>
 
     <div v-if="deleteConfirmOpen" class="modal-mask confirm-mask" @click.self="cancelDelete">
@@ -609,10 +551,7 @@ onBeforeUnmount(() => {
 
           <section class="detail-section">
             <label class="detail-label" for="nc-priority">优先级</label>
-            <select id="nc-priority" v-model="createForm.priorityId" class="form-input">
-              <option value="">不设置</option>
-              <option v-for="p in priorities" :key="p.priorityId" :value="p.priorityId">{{ p.priorityName }}</option>
-            </select>
+            <PrioritySelect v-model="createForm.priorityId" :priorities="priorities" input-id="nc-priority" />
           </section>
 
           <section class="detail-section">
@@ -1080,91 +1019,6 @@ onBeforeUnmount(() => {
 .form-textarea {
   resize: vertical;
   min-height: 90px;
-}
-
-.priority-select {
-  position: relative;
-}
-
-.priority-select.open {
-  z-index: 2401;
-}
-
-.priority-trigger {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  text-align: left;
-  cursor: pointer;
-}
-
-.priority-trigger-text {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.priority-arrow {
-  width: 0;
-  height: 0;
-  flex-shrink: 0;
-  border-left: 4px solid transparent;
-  border-right: 4px solid transparent;
-  border-top: 5px solid #9ca3af;
-  transition: transform 0.15s;
-}
-
-.priority-select.open .priority-arrow {
-  transform: rotate(180deg);
-}
-
-.priority-panel {
-  position: fixed;
-  z-index: 2402;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  max-height: 220px;
-  overflow-y: auto;
-  padding: 6px;
-  background: #ffffff;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
-  animation: fadeIn 0.12s ease-out;
-}
-
-.priority-option {
-  display: flex;
-  align-items: center;
-  padding: 5px 8px;
-  background: transparent;
-  border: none;
-  border-radius: 6px;
-  text-align: left;
-  font-family: inherit;
-  cursor: pointer;
-  transition: background 0.15s;
-}
-
-.priority-option:hover {
-  background: #f3f4f6;
-}
-
-.priority-option.active {
-  background: #eff6ff;
-}
-
-.priority-empty {
-  font-size: 13px;
-  color: #6b7280;
-}
-
-.dropdown-backdrop {
-  position: fixed;
-  inset: 0;
-  z-index: 2400;
 }
 
 .dialog-footer {
