@@ -32,6 +32,10 @@ public class PtStatus implements Serializable {
      */
     private Integer ptStatusOrder;
 /**
+     * 是否计入历史回看（1=计入，0=不计入）
+     */
+    private Integer isHistory;
+/**
      * 删除状态
      */
     private Integer deleteStatus;

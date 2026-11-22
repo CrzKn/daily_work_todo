@@ -42,6 +42,8 @@ public class PersonalTask implements Serializable {
     private String ptStatusId;
 //任务截止日期
     private Date deadlineTime;
+//归档时间，进入历史状态时写入，离开历史状态时清空，可空
+    private Date archivedTime;
 
 }
 

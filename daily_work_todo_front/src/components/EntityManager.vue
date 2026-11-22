@@ -32,9 +32,15 @@ function closeModal() {
 function buildEmptyForm() {
   const result = {}
   props.fields.forEach((field) => {
-    result[field.key] = field.type === 'number' ? null : ''
+    if (field.type === 'number') result[field.key] = null
+    else if (field.type === 'switch') result[field.key] = 0
+    else result[field.key] = ''
   })
   return result
+}
+
+function toggleField(target, field) {
+  target[field.key] = target[field.key] ? 0 : 1
 }
 
 function showMessage(type, text) {
@@ -172,7 +178,13 @@ onMounted(loadList)
             {{ field.label }}
             <span v-if="field.required" class="required">*</span>
           </label>
+          <label v-if="field.type === 'switch'" class="switch">
+            <input type="checkbox" :checked="!!form[field.key]" @change="toggleField(form, field)" />
+            <span class="switch-slider"></span>
+            <span class="switch-text">{{ form[field.key] ? '开启' : '关闭' }}</span>
+          </label>
           <input
+            v-else
             class="field-input"
             :type="field.type === 'number' ? 'number' : 'text'"
             :placeholder="`请输入${field.label}`"
@@ -211,7 +223,13 @@ onMounted(loadList)
               <td class="id-cell">{{ row[idKey] }}</td>
               <template v-if="editingId === row[idKey]">
                 <td v-for="field in fields" :key="field.key">
+                  <label v-if="field.type === 'switch'" class="switch">
+                    <input type="checkbox" :checked="!!editDraft[field.key]" @change="toggleField(editDraft, field)" />
+                    <span class="switch-slider"></span>
+                    <span class="switch-text">{{ editDraft[field.key] ? '开启' : '关闭' }}</span>
+                  </label>
                   <input
+                    v-else
                     class="row-input"
                     :type="field.type === 'number' ? 'number' : 'text'"
                     :value="editDraft[field.key] ?? ''"
@@ -225,12 +243,17 @@ onMounted(loadList)
               </template>
               <template v-else>
                 <td v-for="field in fields" :key="field.key">
-                  <span
-                    v-if="field.dotColorKey"
-                    class="dot"
-                    :style="{ background: dotColor(field.dotColorKey, row[field.dotColorKey]) }"
-                  ></span>
-                  {{ row[field.key] ?? '' }}
+                  <span v-if="field.type === 'switch'" class="switch-badge" :class="{ on: row[field.key] }">
+                    {{ row[field.key] ? '是' : '否' }}
+                  </span>
+                  <template v-else>
+                    <span
+                      v-if="field.dotColorKey"
+                      class="dot"
+                      :style="{ background: dotColor(field.dotColorKey, row[field.dotColorKey]) }"
+                    ></span>
+                    {{ row[field.key] ?? '' }}
+                  </template>
                 </td>
                 <td class="op-cell">
                   <button type="button" class="link primary" @click="startEdit(row)">修改</button>
@@ -472,6 +495,71 @@ onMounted(loadList)
   text-align: center;
   color: #9ca3af;
   padding: 24px 0;
+}
+
+/* 开关字段 */
+.switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.switch input {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.switch-slider {
+  position: relative;
+  width: 38px;
+  height: 20px;
+  background: #d1d5db;
+  border-radius: 999px;
+  transition: background 0.2s;
+}
+
+.switch-slider::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  background: #ffffff;
+  border-radius: 50%;
+  transition: transform 0.2s;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.switch input:checked + .switch-slider {
+  background: #3b82f6;
+}
+
+.switch input:checked + .switch-slider::after {
+  transform: translateX(18px);
+}
+
+.switch-text {
+  font-size: 13px;
+  color: #4b5563;
+}
+
+.switch-badge {
+  display: inline-block;
+  padding: 2px 10px;
+  font-size: 12px;
+  border-radius: 999px;
+  color: #6b7280;
+  background: #f3f4f6;
+}
+
+.switch-badge.on {
+  color: #1d4ed8;
+  background: #dbeafe;
 }
 
 .tip {

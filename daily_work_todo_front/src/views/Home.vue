@@ -2,6 +2,7 @@
 import { ref, computed } from 'vue'
 import TaskBoard from './TaskBoard.vue'
 import PeriodicTaskManage from './PeriodicTaskManage.vue'
+import HistoryTaskView from './HistoryTaskView.vue'
 import TagManage from './TagManage.vue'
 import StatusManage from './StatusManage.vue'
 import PriorityManage from './PriorityManage.vue'
@@ -9,6 +10,7 @@ import PriorityManage from './PriorityManage.vue'
 const modules = [
   { id: 'board', name: '任务看板' },
   { id: 'periodic', name: '周期任务' },
+  { id: 'history', name: '历史任务回看' },
   { id: 'tag', name: '标签管理' },
   { id: 'status', name: '任务状态管理' },
   { id: 'priority', name: '任务优先级管理' },
@@ -17,6 +19,7 @@ const modules = [
 const moduleComponents = {
   board: TaskBoard,
   periodic: PeriodicTaskManage,
+  history: HistoryTaskView,
   tag: TagManage,
   status: StatusManage,
   priority: PriorityManage,
