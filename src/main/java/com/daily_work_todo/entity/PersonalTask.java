@@ -40,6 +40,8 @@ public class PersonalTask implements Serializable {
     private String priorityId;
 //状态id
     private String ptStatusId;
+//任务截止日期
+    private Date deadlineTime;
 
 }
 
