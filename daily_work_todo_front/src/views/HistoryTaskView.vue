@@ -228,7 +228,7 @@ onBeforeUnmount(() => {
 <template>
   <div class="page">
     <header class="page-header">
-      <h2 class="page-title">历史任务回看</h2>
+      <h2 class="page-title">已归档任务</h2>
       <span v-if="message" class="page-message">{{ message }}</span>
       <span class="result-count" v-if="!loading">共 {{ sortedTasks.length }} 条</span>
     </header>

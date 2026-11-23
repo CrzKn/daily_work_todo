@@ -10,7 +10,7 @@ import PriorityManage from './PriorityManage.vue'
 const modules = [
   { id: 'board', name: '任务看板' },
   { id: 'periodic', name: '周期任务' },
-  { id: 'history', name: '历史任务回看' },
+  { id: 'history', name: '已归档任务' },
   { id: 'tag', name: '标签管理' },
   { id: 'status', name: '任务状态管理' },
   { id: 'priority', name: '任务优先级管理' },

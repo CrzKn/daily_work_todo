@@ -9,6 +9,8 @@ import com.daily_work_todo.service.PtStatusService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Date;
@@ -27,6 +29,11 @@ import java.util.stream.Collectors;
 @RestController
 @RequestMapping("/personalTask")
 public class PersonalTaskController {
+
+    /** 已完成状态id */
+    private static final String STATUS_DONE_ID = "status_done";
+    /** 已归档状态id */
+    private static final String STATUS_ARCHIVED_ID = "status_archived";
 
     @Autowired
     private PersonalTaskService personalTaskService;
@@ -110,6 +117,32 @@ public class PersonalTaskController {
     }
 
     /**
+     * 往日已完成的任务自动转为「已归档」：
+     * 完成时间（进入已完成状态时写入的归档时间，缺失时用更新时间兜底）早于今天的任务，第二天自动归档。
+     * 归档时间保持完成时间不变，保证历史回看的排序稳定。
+     */
+    private void autoArchiveCompletedTasks() {
+        LocalDate today = LocalDate.now();
+        List<PersonalTask> doneTasks = personalTaskService.lambdaQuery()
+                .eq(PersonalTask::getPtStatusId, STATUS_DONE_ID)
+                .list();
+        for (PersonalTask task : doneTasks) {
+            Date ref = task.getArchivedTime() != null ? task.getArchivedTime() : task.getUpdatedTime();
+            if (ref == null) {
+                continue;
+            }
+            LocalDate refDate = ref.toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
+            if (refDate.isBefore(today)) {
+                personalTaskService.lambdaUpdate()
+                        .eq(PersonalTask::getPtId, task.getPtId())
+                        .set(PersonalTask::getPtStatusId, STATUS_ARCHIVED_ID)
+                        .set(PersonalTask::getUpdatedTime, new Date())
+                        .update();
+            }
+        }
+    }
+
+    /**
      * 根据主键查询个人任务
      */
     @GetMapping("/{id}")
@@ -122,6 +155,8 @@ public class PersonalTaskController {
      */
     @GetMapping("/list")
     public List<PersonalTask> list() {
+        // 往日已完成的任务先自动归档，看板不再展示
+        autoArchiveCompletedTasks();
         // 优先级字典：priorityId -> priorityOrder（数值越小越靠前）
         Map<String, Integer> priorityOrderMap = new HashMap<>();
         for (Prioritys p : prioritysService.list()) {
@@ -145,6 +180,8 @@ public class PersonalTaskController {
      */
     @GetMapping("/history")
     public List<PersonalTask> history() {
+        // 往日已完成的任务先自动归档
+        autoArchiveCompletedTasks();
         List<String> historyStatusIds = ptStatusService.lambdaQuery()
                 .eq(PtStatus::getDeleteStatus, 0)
                 .eq(PtStatus::getIsHistory, 1)

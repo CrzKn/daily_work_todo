@@ -27,6 +27,8 @@ public class PeriodicTaskServiceImpl extends ServiceImpl<PeriodicTaskMapper, Per
     private static final String CYCLE_DAILY = "DAILY";
     private static final String CYCLE_WEEKLY = "WEEKLY";
     private static final String CYCLE_MONTHLY = "MONTHLY";
+    // 周期任务生成的实例默认落到"待办"状态
+    private static final String DEFAULT_STATUS_ID = "status_todo";
 
     @Autowired
     private PersonalTaskService personalTaskService;
@@ -122,12 +124,16 @@ public class PeriodicTaskServiceImpl extends ServiceImpl<PeriodicTaskMapper, Per
             Date now = new Date();
             task.setCreatedTme(now);
             task.setUpdatedTime(now);
-            PtStatus firstStatus = ptStatusService.lambdaQuery()
-                    .orderByAsc(PtStatus::getPtStatusOrder)
-                    .last("LIMIT 1")
-                    .one();
-            if (firstStatus != null) {
-                task.setPtStatusId(firstStatus.getPtStatusId());
+            // 周期任务生成的实例默认落到"待办"状态；找不到时回退到排序最前的状态
+            PtStatus defaultStatus = ptStatusService.getById(DEFAULT_STATUS_ID);
+            if (defaultStatus == null) {
+                defaultStatus = ptStatusService.lambdaQuery()
+                        .orderByAsc(PtStatus::getPtStatusOrder)
+                        .last("LIMIT 1")
+                        .one();
+            }
+            if (defaultStatus != null) {
+                task.setPtStatusId(defaultStatus.getPtStatusId());
             }
             personalTaskService.save(task);
 

@@ -4,6 +4,7 @@ import { createCrudApi } from '../api/crud'
 import { periodicApi } from '../api/periodic'
 import PrioritySelect from '../components/PrioritySelect.vue'
 import TagMultiSelect from '../components/TagMultiSelect.vue'
+import WarningConfirm from '../components/WarningConfirm.vue'
 
 const taskApi = createCrudApi('/personalTask')
 const statusApi = createCrudApi('/ptStatus')
@@ -37,9 +38,13 @@ const COLUMN_COLORS = [
   '#ec4899',
 ]
 
+// 已归档的任务不在任务看板展示，只保留在「历史任务回看」中
+const ARCHIVED_STATUS_ID = 'status_archived'
+
 const columns = computed(() => {
   const knownIds = new Set(statuses.value.map((status) => status.ptStatusId))
-  const result = statuses.value.map((status, index) => ({
+  const visibleStatuses = statuses.value.filter((status) => status.ptStatusId !== ARCHIVED_STATUS_ID)
+  const result = visibleStatuses.map((status, index) => ({
     id: status.ptStatusId,
     name: status.ptStatusName,
     color: COLUMN_COLORS[index % COLUMN_COLORS.length],
@@ -195,9 +200,15 @@ const saving = ref(false)
 async function saveTask() {
   const task = selectedTask.value
   if (!task || saving.value) return
+  if (!task.title || !task.title.trim()) {
+    showWarning('任务标题不能为空', '请先填写任务标题再保存。')
+    return
+  }
   saving.value = true
   try {
     const payload = { ...task }
+    payload.title = payload.title.trim()
+    payload.content = payload.content ?? ''
     if (payload.priorityId === '') payload.priorityId = null
     if (payload.tagId === '') payload.tagId = null
     const ok = await taskApi.update(payload)
@@ -215,6 +226,16 @@ async function saveTask() {
 }
 
 const deleteConfirmOpen = ref(false)
+
+// 通用警告弹窗：校验任务标题非空时使用，其他类似警告也走这里
+const warningOpen = ref(false)
+const warningTitle = ref('')
+const warningMessage = ref('')
+function showWarning(title, message) {
+  warningTitle.value = title
+  warningMessage.value = message
+  warningOpen.value = true
+}
 
 function askDelete() {
   deleteConfirmOpen.value = true
@@ -252,18 +273,14 @@ function closeCreate() {
 async function submitCreate() {
   const { title, content, tagId, priorityId } = createForm.value
   if (!title.trim()) {
-    showMessage('请填写任务标题')
-    return
-  }
-  if (!content.trim()) {
-    showMessage('请填写任务内容')
+    showWarning('任务标题不能为空', '请先填写任务标题再创建。')
     return
   }
   submitting.value = true
   try {
     const ok = await taskApi.save({
       title: title.trim(),
-      content: content.trim(),
+      content: content?.trim() ?? '',
       tagId: tagId || null,
       priorityId: priorityId || null,
     })
@@ -526,6 +543,8 @@ onBeforeUnmount(() => {
         </div>
       </div>
     </div>
+
+    <WarningConfirm v-model:open="warningOpen" :title="warningTitle" :message="warningMessage" />
 
     <div v-if="showCreate" class="modal-mask" @mousedown.self="createMaskDown = true" @mouseup.self="onCreateMaskUp">
       <form class="detail-dialog" role="dialog" aria-modal="true" aria-label="新建任务" @submit.prevent="submitCreate" @mousedown="createMaskDown = false">
