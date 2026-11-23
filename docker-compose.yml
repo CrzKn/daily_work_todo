@@ -1,0 +1,39 @@
+name: daily-work-todo
+
+# 说明：MySQL 复用 Docker 中已运行的现有容器（容器名 mysql），
+#       该容器需预先接入外部网络 todo-net：
+#         docker network create todo-net
+#         docker network connect todo-net mysql
+#       本编排仅负责启动 back + front 两个服务。
+
+services:
+  back:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: dwt-back
+    restart: unless-stopped
+    environment:
+      # 覆盖 application.yml 中的数据源配置（Spring Boot 宽松绑定）
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/${MYSQL_DATABASE:-daily_work_todo}?useUnicode=true&characterEncoding=UTF8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
+      SPRING_DATASOURCE_USERNAME: ${MYSQL_USER:-root}
+      SPRING_DATASOURCE_PASSWORD: ${MYSQL_PASSWORD:-PORTGASDACE}
+    networks:
+      - todo-net
+
+  front:
+    build:
+      context: .
+      dockerfile: daily_work_todo_front/Dockerfile
+    container_name: dwt-front
+    restart: unless-stopped
+    ports:
+      - "${FRONT_PORT:-35173}:80"
+    depends_on:
+      - back
+    networks:
+      - todo-net
+
+networks:
+  todo-net:
+    external: true

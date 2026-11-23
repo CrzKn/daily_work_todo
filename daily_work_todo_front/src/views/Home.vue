@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import TaskBoard from './TaskBoard.vue'
 import PeriodicTaskManage from './PeriodicTaskManage.vue'
 import HistoryTaskView from './HistoryTaskView.vue'
@@ -25,8 +25,37 @@ const moduleComponents = {
   priority: PriorityManage,
 }
 
-const activeModule = ref(modules[0].id)
+// 用 hash 记录当前模块，刷新后仍停留在原页面（如 #/history）
+function moduleIdFromHash() {
+  const id = window.location.hash.replace(/^#\/?/, '')
+  return modules.some((mod) => mod.id === id) ? id : modules[0].id
+}
+
+const activeModule = ref(moduleIdFromHash())
 const activeComponent = computed(() => moduleComponents[activeModule.value] ?? null)
+
+function selectModule(id) {
+  if (activeModule.value !== id) {
+    activeModule.value = id
+    window.location.hash = `#/${id}`
+  }
+}
+
+function syncFromHash() {
+  activeModule.value = moduleIdFromHash()
+}
+
+onMounted(() => {
+  window.addEventListener('hashchange', syncFromHash)
+  // 首次进入时补齐 hash，保证地址栏与当前页面一致
+  if (!window.location.hash) {
+    window.history.replaceState(null, '', `#/${activeModule.value}`)
+  }
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('hashchange', syncFromHash)
+})
 </script>
 
 <template>
@@ -39,7 +68,7 @@ const activeComponent = computed(() => moduleComponents[activeModule.value] ?? n
           :key="mod.id"
           class="module-item"
           :class="{ active: activeModule === mod.id }"
-          @click="activeModule = mod.id"
+          @click="selectModule(mod.id)"
         >
           {{ mod.name }}
         </div>

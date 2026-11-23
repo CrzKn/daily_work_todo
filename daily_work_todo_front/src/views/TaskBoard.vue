@@ -3,6 +3,7 @@ import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { createCrudApi } from '../api/crud'
 import { periodicApi } from '../api/periodic'
 import PrioritySelect from '../components/PrioritySelect.vue'
+import TagMultiSelect from '../components/TagMultiSelect.vue'
 
 const taskApi = createCrudApi('/personalTask')
 const statusApi = createCrudApi('/ptStatus')
@@ -66,6 +67,14 @@ const tagNameMap = computed(() => {
   })
   return map
 })
+
+// 任务标签以逗号分隔的标签id存储，兼容旧的单标签数据
+function tagIdsOf(task) {
+  return (task?.tagId || '')
+    .split(',')
+    .map((id) => id.trim())
+    .filter(Boolean)
+}
 
 // 与优先级管理页圆点保持一致：排序值越小越红，越大越绿
 const priorityStyleMap = computed(() => {
@@ -195,8 +204,8 @@ async function saveTask() {
     if (!ok) throw new Error('后端返回失败')
     // 保存成功后重新加载所有数据（后端 list 已改为按优先级/创建时间/更新时间排序）
     await loadData()
-    // 同步刷新详情弹框（拿到后端写入的更新时间）
-    selectedTask.value = await taskApi.getById(task.ptId)
+    // 保存成功后关闭详情弹框
+    closeDetail()
     showMessage('已保存')
   } catch (e) {
     showMessage(`保存失败：${e.message}`)
@@ -422,7 +431,7 @@ onBeforeUnmount(() => {
             <div v-if="task.title" class="card-title">{{ task.title }}</div>
             <p v-if="task.content && !collapsed[column.id]" class="card-content">{{ truncate(task.content) }}</p>
             <div
-              v-if="!collapsed[column.id] && ((task.priorityId && priorityNameMap[task.priorityId]) || (task.tagId && tagNameMap[task.tagId]))"
+              v-if="!collapsed[column.id] && ((task.priorityId && priorityNameMap[task.priorityId]) || tagIdsOf(task).length)"
               class="card-tags"
             >
               <span
@@ -432,9 +441,9 @@ onBeforeUnmount(() => {
               >
                 优先级：{{ priorityNameMap[task.priorityId] }}
               </span>
-              <span v-if="task.tagId && tagNameMap[task.tagId]" class="chip tag">
-                {{ tagNameMap[task.tagId] }}
-              </span>
+              <template v-for="tagId in tagIdsOf(task)" :key="tagId">
+                <span v-if="tagNameMap[tagId]" class="chip tag">{{ tagNameMap[tagId] }}</span>
+              </template>
             </div>
             <p class="card-meta">创建于 {{ formatDateOnly(task.createdTme) }}</p>
           </article>
@@ -484,15 +493,8 @@ onBeforeUnmount(() => {
           </section>
 
           <section class="detail-section">
-            <label class="detail-label" for="dt-tag">标签</label>
-            <select
-              id="dt-tag"
-              v-model="selectedTask.tagId"
-              class="form-input"
-            >
-              <option value="">不设置</option>
-              <option v-for="t in tags" :key="t.tagId" :value="t.tagId">{{ t.tagName }}</option>
-            </select>
+            <label class="detail-label" for="dt-tag">标签（可多选）</label>
+            <TagMultiSelect v-model="selectedTask.tagId" :tags="tags" input-id="dt-tag" />
           </section>
 
           <section class="detail-section">
@@ -555,11 +557,8 @@ onBeforeUnmount(() => {
           </section>
 
           <section class="detail-section">
-            <label class="detail-label" for="nc-tag">标签</label>
-            <select id="nc-tag" v-model="createForm.tagId" class="form-input">
-              <option value="">不设置</option>
-              <option v-for="t in tags" :key="t.tagId" :value="t.tagId">{{ t.tagName }}</option>
-            </select>
+            <label class="detail-label" for="nc-tag">标签（可多选）</label>
+            <TagMultiSelect v-model="createForm.tagId" :tags="tags" input-id="nc-tag" />
           </section>
         </div>
 

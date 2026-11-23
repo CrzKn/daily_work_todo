@@ -1,0 +1,12 @@
+# 构建上下文排除项，减小发送给 Docker 守护进程的体积
+**/node_modules
+**/target
+**/dist
+.git
+.gitignore
+.env
+*.log
+.idea
+.vscode
+*.iml
+HELP.md

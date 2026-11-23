@@ -53,6 +53,20 @@ const tagNameMap = computed(() => {
   return map
 })
 
+// 任务标签以逗号分隔的标签id存储
+function tagIdsOf(task) {
+  return (task?.tagId || '')
+    .split(',')
+    .map((id) => id.trim())
+    .filter(Boolean)
+}
+
+function tagNamesOf(task) {
+  return tagIdsOf(task)
+    .map((id) => tagNameMap.value[id])
+    .filter(Boolean)
+}
+
 // 优先级颜色：与看板、优先级管理页保持一致（排序值越小越红，越大越绿）
 const priorityStyleMap = computed(() => {
   const list = priorities.value.filter(
@@ -121,7 +135,7 @@ const filteredTasks = computed(() => {
     }
     if (filters.statusId && t.ptStatusId !== filters.statusId) return false
     if (filters.priorityId && t.priorityId !== filters.priorityId) return false
-    if (filters.tagId && t.tagId !== filters.tagId) return false
+    if (filters.tagId && !tagIdsOf(t).includes(filters.tagId)) return false
     if (filters.archivedStart || filters.archivedEnd) {
       const refTime = t.archivedTime || t.updatedTime
       const d = refTime ? new Date(refTime) : null
@@ -309,7 +323,7 @@ onBeforeUnmount(() => {
                 </span>
                 <span v-else class="muted">未设置</span>
               </td>
-              <td>{{ tagNameMap[task.tagId] || '未设置' }}</td>
+              <td>{{ tagNamesOf(task).join('、') || '未设置' }}</td>
               <td>
                 {{ formatDateTime(archivedDisplay(task)) }}
                 <span v-if="!task.archivedTime" class="muted note">（更新时间兜底）</span>
@@ -361,7 +375,7 @@ onBeforeUnmount(() => {
             </section>
             <section class="detail-section">
               <div class="detail-label">标签</div>
-              <div class="detail-value">{{ tagNameMap[selectedTask.tagId] || '未设置' }}</div>
+              <div class="detail-value">{{ tagNamesOf(selectedTask).join('、') || '未设置' }}</div>
             </section>
             <section class="detail-section">
               <div class="detail-label">创建时间</div>
