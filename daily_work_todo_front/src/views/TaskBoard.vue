@@ -26,6 +26,8 @@ const collapsed = ref({})
 const showCreate = ref(false)
 const submitting = ref(false)
 const createForm = ref({ title: '', content: '', tagId: '', priorityId: '' })
+const filterPriorityId = ref('')
+const filterTagId = ref('')
 
 const COLUMN_COLORS = [
   '#9ca3af',
@@ -48,9 +50,9 @@ const columns = computed(() => {
     id: status.ptStatusId,
     name: status.ptStatusName,
     color: COLUMN_COLORS[index % COLUMN_COLORS.length],
-    tasks: tasks.value.filter((task) => task.ptStatusId === status.ptStatusId),
+    tasks: filteredTasks.value.filter((task) => task.ptStatusId === status.ptStatusId),
   }))
-  const uncategorized = tasks.value.filter((task) => !knownIds.has(task.ptStatusId))
+  const uncategorized = filteredTasks.value.filter((task) => !knownIds.has(task.ptStatusId))
   if (uncategorized.length) {
     result.push({ id: '', name: '未分类', color: '#d1d5db', tasks: uncategorized })
   }
@@ -80,6 +82,29 @@ function tagIdsOf(task) {
     .map((id) => id.trim())
     .filter(Boolean)
 }
+
+const filterTagIds = computed(() =>
+  (filterTagId.value || '')
+    .split(',')
+    .map((id) => id.trim())
+    .filter(Boolean),
+)
+
+const hasFilter = computed(() => !!filterPriorityId.value || filterTagIds.value.length > 0)
+
+// 筛选：优先级需完全匹配；标签只要命中任意一个已选标签即保留
+const filteredTasks = computed(() =>
+  tasks.value.filter((task) => {
+    if (filterPriorityId.value && String(task.priorityId) !== String(filterPriorityId.value)) {
+      return false
+    }
+    if (filterTagIds.value.length) {
+      const ids = tagIdsOf(task)
+      if (!filterTagIds.value.some((id) => ids.includes(id))) return false
+    }
+    return true
+  }),
+)
 
 // 与优先级管理页圆点保持一致：排序值越小越红，越大越绿
 const priorityStyleMap = computed(() => {
@@ -410,6 +435,29 @@ onBeforeUnmount(() => {
       <button type="button" class="btn-new" @click="openCreate">+ 新建任务</button>
     </header>
 
+    <div class="filter-bar">
+      <div class="filter-item">
+        <span class="filter-label">优先级</span>
+        <PrioritySelect
+          v-model="filterPriorityId"
+          :priorities="priorities"
+          input-id="board-filter-priority"
+          placeholder="全部优先级"
+        />
+      </div>
+      <div class="filter-item">
+        <span class="filter-label">标签</span>
+        <TagMultiSelect
+          v-model="filterTagId"
+          :tags="tags"
+          input-id="board-filter-tag"
+          placeholder="全部标签"
+          @created="tags = $event"
+        />
+      </div>
+      <span v-if="hasFilter" class="filter-tip">已筛选 {{ filteredTasks.length }} / {{ tasks.length }} 个任务</span>
+    </div>
+
     <div ref="columnsRef" class="columns">
       <section
         v-for="column in columns"
@@ -465,7 +513,9 @@ onBeforeUnmount(() => {
             <p class="card-meta">创建于 {{ formatDateOnly(task.createdTme) }}</p>
           </article>
 
-          <p v-if="!column.tasks.length" class="empty">这个状态还没有任务</p>
+          <p v-if="!column.tasks.length" class="empty">
+            {{ hasFilter ? '没有符合筛选的任务' : '这个状态还没有任务' }}
+          </p>
         </div>
       </section>
     </div>
@@ -511,7 +561,7 @@ onBeforeUnmount(() => {
 
           <section class="detail-section">
             <label class="detail-label" for="dt-tag">标签（可多选）</label>
-            <TagMultiSelect v-model="selectedTask.tagId" :tags="tags" input-id="dt-tag" />
+            <TagMultiSelect v-model="selectedTask.tagId" :tags="tags" input-id="dt-tag" @created="tags = $event" />
           </section>
 
           <section class="detail-section">
@@ -577,7 +627,7 @@ onBeforeUnmount(() => {
 
           <section class="detail-section">
             <label class="detail-label" for="nc-tag">标签（可多选）</label>
-            <TagMultiSelect v-model="createForm.tagId" :tags="tags" input-id="nc-tag" />
+            <TagMultiSelect v-model="createForm.tagId" :tags="tags" input-id="nc-tag" @created="tags = $event" />
           </section>
         </div>
 
@@ -633,6 +683,41 @@ onBeforeUnmount(() => {
 .btn-new:hover {
   background: #2563eb;
   box-shadow: 0 2px 6px rgba(59, 130, 246, 0.3);
+}
+
+.filter-bar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.filter-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 240px;
+}
+
+.filter-label {
+  flex-shrink: 0;
+  font-size: 13px;
+  color: #4b5563;
+}
+
+.filter-item :deep(.priority-select) {
+  flex: 1;
+  min-width: 0;
+}
+
+.filter-item :deep(.tag-select-trigger) {
+  flex: 1;
+  min-width: 0;
+}
+
+.filter-tip {
+  font-size: 13px;
+  color: #6b7280;
 }
 
 .columns {

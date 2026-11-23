@@ -1,5 +1,6 @@
 <script setup>
 import { ref, computed, nextTick, onMounted, onBeforeUnmount } from 'vue'
+import { createCrudApi } from '../api/crud'
 
 // 下拉多选标签：modelValue 为逗号分隔的标签id字符串，未选择时为 ''
 // 面板 Teleport 到 body，避免被弹窗的 overflow 裁剪
@@ -7,15 +8,23 @@ const props = defineProps({
   modelValue: { type: String, default: '' },
   tags: { type: Array, default: () => [] },
   inputId: { type: String, default: '' },
+  placeholder: { type: String, default: '请选择标签' },
 })
 
-const emit = defineEmits(['update:modelValue'])
+const emit = defineEmits(['update:modelValue', 'created'])
+
+const tagApi = createCrudApi('/tags')
 
 const open = ref(false)
 const keyword = ref('')
 const triggerRef = ref(null)
 const panelRef = ref(null)
 const panelStyle = ref({})
+const creating = ref(false)
+const newTagName = ref('')
+const saving = ref(false)
+const createError = ref('')
+const createInputRef = ref(null)
 
 const selectedIds = computed(() =>
   (props.modelValue || '')
@@ -68,6 +77,7 @@ async function toggleOpen() {
   open.value = !open.value
   if (open.value) {
     keyword.value = ''
+    resetCreate()
     await nextTick()
     updatePosition()
   }
@@ -75,6 +85,7 @@ async function toggleOpen() {
 
 function close() {
   open.value = false
+  resetCreate()
 }
 
 function toggleTag(id) {
@@ -86,6 +97,52 @@ function toggleTag(id) {
 
 function clearAll() {
   emit('update:modelValue', '')
+}
+
+function resetCreate() {
+  creating.value = false
+  newTagName.value = ''
+  createError.value = ''
+  saving.value = false
+}
+
+async function startCreate() {
+  creating.value = true
+  newTagName.value = ''
+  createError.value = ''
+  await nextTick()
+  createInputRef.value?.focus()
+}
+
+function selectTag(id) {
+  if (selectedIds.value.includes(id)) return
+  emit('update:modelValue', [...selectedIds.value, id].join(','))
+}
+
+async function confirmCreate() {
+  const name = newTagName.value.trim()
+  if (!name || saving.value) return
+  const existing = props.tags.find((t) => (t.tagName || '').toLowerCase() === name.toLowerCase())
+  if (existing) {
+    selectTag(existing.tagId)
+    resetCreate()
+    return
+  }
+  saving.value = true
+  createError.value = ''
+  try {
+    const ok = await tagApi.save({ tagName: name })
+    if (!ok) throw new Error('新增标签失败')
+    const list = await tagApi.list()
+    const createdTag = list.find((t) => (t.tagName || '').toLowerCase() === name.toLowerCase())
+    emit('created', list)
+    if (createdTag) selectTag(createdTag.tagId)
+    resetCreate()
+  } catch (e) {
+    createError.value = e.message || '新增标签失败'
+  } finally {
+    saving.value = false
+  }
 }
 
 function onDocumentPointerDown(e) {
@@ -133,7 +190,7 @@ onBeforeUnmount(() => {
       <span v-for="t in visibleChips" :key="t.tagId" class="chip">{{ t.tagName }}</span>
       <span v-if="hiddenCount" class="chip more">+{{ hiddenCount }}</span>
     </template>
-    <span v-else class="placeholder">请选择标签</span>
+    <span v-else class="placeholder">{{ placeholder }}</span>
     <span class="caret" aria-hidden="true"></span>
   </button>
 
@@ -157,11 +214,35 @@ onBeforeUnmount(() => {
         </button>
         <p v-if="!filteredTags.length" class="panel-empty">没有匹配的标签</p>
       </div>
-      <div class="panel-footer">
-        <span class="count">已选 {{ selectedTags.length }} 个</span>
-        <button type="button" class="link-btn" :disabled="!selectedTags.length" @click="clearAll">
-          清空
-        </button>
+      <div class="panel-footer" :class="{ creating }">
+        <template v-if="creating">
+          <div class="create-row">
+            <input
+              ref="createInputRef"
+              v-model="newTagName"
+              type="text"
+              class="create-input"
+              placeholder="输入新标签名称"
+              :disabled="saving"
+              @keydown.enter.prevent="confirmCreate"
+              @keydown.esc.stop.prevent="resetCreate"
+            />
+            <button type="button" class="link-btn" :disabled="!newTagName.trim() || saving" @click="confirmCreate">
+              {{ saving ? '保存中…' : '确定' }}
+            </button>
+            <button type="button" class="link-btn muted" :disabled="saving" @click="resetCreate">取消</button>
+          </div>
+          <p v-if="createError" class="create-error">{{ createError }}</p>
+        </template>
+        <template v-else>
+          <span class="count">已选 {{ selectedTags.length }} 个</span>
+          <div class="footer-actions">
+            <button type="button" class="link-btn" @click="startCreate">新增标签</button>
+            <button type="button" class="link-btn" :disabled="!selectedTags.length" @click="clearAll">
+              清空
+            </button>
+          </div>
+        </template>
       </div>
     </div>
   </Teleport>
@@ -336,8 +417,49 @@ onBeforeUnmount(() => {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 8px;
   padding: 6px 10px;
   border-top: 1px solid #f3f4f6;
+}
+
+.panel-footer.creating {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 4px;
+}
+
+.footer-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.create-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.create-input {
+  flex: 1;
+  min-width: 0;
+  height: 28px;
+  padding: 0 8px;
+  box-sizing: border-box;
+  font-size: 13px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  outline: none;
+}
+
+.create-input:focus {
+  border-color: #3b82f6;
+}
+
+.create-error {
+  margin: 0;
+  font-size: 12px;
+  color: #dc2626;
 }
 
 .count {
@@ -357,5 +479,9 @@ onBeforeUnmount(() => {
 .link-btn:disabled {
   color: #d1d5db;
   cursor: not-allowed;
+}
+
+.link-btn.muted {
+  color: #6b7280;
 }
 </style>
