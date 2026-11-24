@@ -3,32 +3,25 @@ import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import TaskBoard from './TaskBoard.vue'
 import PeriodicTaskManage from './PeriodicTaskManage.vue'
 import HistoryTaskView from './HistoryTaskView.vue'
-import TagManage from './TagManage.vue'
-import StatusManage from './StatusManage.vue'
-import PriorityManage from './PriorityManage.vue'
+import SettingsView from './SettingsView.vue'
 
 const modules = [
   { id: 'board', name: '任务看板' },
   { id: 'periodic', name: '周期任务' },
   { id: 'history', name: '已归档任务' },
-  { id: 'tag', name: '标签管理' },
-  { id: 'status', name: '任务状态管理' },
-  { id: 'priority', name: '任务优先级管理' },
 ]
 
 const moduleComponents = {
   board: TaskBoard,
   periodic: PeriodicTaskManage,
   history: HistoryTaskView,
-  tag: TagManage,
-  status: StatusManage,
-  priority: PriorityManage,
+  settings: SettingsView,
 }
 
-// 用 hash 记录当前模块，刷新后仍停留在原页面（如 #/history）
+// 用 hash 记录当前模块，刷新后仍停留在原页面（如 #/history、#/settings/tag）
 function moduleIdFromHash() {
-  const id = window.location.hash.replace(/^#\/?/, '')
-  return modules.some((mod) => mod.id === id) ? id : modules[0].id
+  const id = window.location.hash.replace(/^#\/?/, '').split('/')[0]
+  return modules.some((mod) => mod.id === id) || id === 'settings' ? id : modules[0].id
 }
 
 const activeModule = ref(moduleIdFromHash())
@@ -73,6 +66,31 @@ onBeforeUnmount(() => {
           {{ mod.name }}
         </div>
       </nav>
+
+      <div class="sidebar-footer">
+        <button
+          type="button"
+          class="settings-btn"
+          :class="{ active: activeModule === 'settings' }"
+          @click="selectModule('settings')"
+        >
+          <svg
+            class="settings-icon"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.8"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path
+              d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"
+            />
+            <circle cx="12" cy="12" r="3" />
+          </svg>
+          <span>设置</span>
+        </button>
+      </div>
     </aside>
 
     <main class="content">
@@ -125,6 +143,44 @@ onBeforeUnmount(() => {
 .module-item.active {
   background: #3b82f6;
   color: #ffffff;
+}
+
+.sidebar-footer {
+  margin-top: auto;
+  padding: 8px;
+  border-top: 1px solid #374151;
+}
+
+.settings-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  font-size: 14px;
+  font-family: inherit;
+  color: #e5e7eb;
+  background: none;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.2s;
+}
+
+.settings-btn:hover {
+  background: #374151;
+}
+
+.settings-btn.active {
+  background: #3b82f6;
+  color: #ffffff;
+}
+
+.settings-icon {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
 }
 
 .content {

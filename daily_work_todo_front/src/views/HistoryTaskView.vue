@@ -175,6 +175,26 @@ const sortedTasks = computed(() => {
   })
 })
 
+// 分页
+const pageSizeOptions = [10, 20, 50]
+const pageSize = ref(10)
+const currentPage = ref(1)
+
+const totalPages = computed(() => Math.max(1, Math.ceil(sortedTasks.value.length / pageSize.value)))
+
+const pagedTasks = computed(() => {
+  const start = (currentPage.value - 1) * pageSize.value
+  return sortedTasks.value.slice(start, start + pageSize.value)
+})
+
+// 筛选条件或每页条数变化时回到第一页
+watch([keywordEffective, pageSize], () => { currentPage.value = 1 })
+watch(filters, () => { currentPage.value = 1 })
+// 数据量减少时修正页码
+watch(totalPages, (tp) => {
+  if (currentPage.value > tp) currentPage.value = tp
+})
+
 function formatDateTime(value) {
   if (!value) return '-'
   const d = new Date(value)
@@ -305,7 +325,7 @@ onBeforeUnmount(() => {
           </thead>
           <tbody>
             <tr
-              v-for="task in sortedTasks"
+              v-for="task in pagedTasks"
               :key="task.ptId"
               class="task-row"
               @click="openDetail(task)"
@@ -332,6 +352,30 @@ onBeforeUnmount(() => {
             </tr>
           </tbody>
         </table>
+      </div>
+
+      <div v-if="!loading && sortedTasks.length" class="pagination">
+        <div class="page-size">
+          <span>每页</span>
+          <select v-model.number="pageSize" class="page-size-select">
+            <option v-for="size in pageSizeOptions" :key="size" :value="size">{{ size }}</option>
+          </select>
+          <span>条</span>
+        </div>
+        <div class="page-nav">
+          <button type="button" class="btn ghost" :disabled="currentPage <= 1" @click="currentPage--">
+            上一页
+          </button>
+          <span class="page-info">{{ currentPage }} / {{ totalPages }}</span>
+          <button
+            type="button"
+            class="btn ghost"
+            :disabled="currentPage >= totalPages"
+            @click="currentPage++"
+          >
+            下一页
+          </button>
+        </div>
       </div>
     </section>
 
@@ -536,6 +580,55 @@ onBeforeUnmount(() => {
 }
 
 .btn.ghost {
+  color: #6b7280;
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.page-size {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: #6b7280;
+}
+
+.page-size-select {
+  height: 30px;
+  padding: 0 6px;
+  font-size: 13px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  outline: none;
+  background: #ffffff;
+  box-sizing: border-box;
+}
+
+.page-size-select:focus {
+  border-color: #3b82f6;
+}
+
+.page-nav {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-left: auto;
+}
+
+.page-info {
+  font-size: 13px;
   color: #6b7280;
 }
 
