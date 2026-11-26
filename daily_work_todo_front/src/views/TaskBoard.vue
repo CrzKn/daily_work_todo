@@ -450,6 +450,7 @@ onBeforeUnmount(() => {
         <TagMultiSelect
           v-model="filterTagId"
           :tags="tags"
+          :allow-create="false"
           input-id="board-filter-tag"
           placeholder="全部标签"
           @created="tags = $event"

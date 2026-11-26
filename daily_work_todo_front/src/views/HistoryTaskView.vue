@@ -2,6 +2,8 @@
 import { ref, reactive, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 import { createCrudApi } from '../api/crud'
 import { historyApi } from '../api/history'
+import PrioritySelect from '../components/PrioritySelect.vue'
+import TagMultiSelect from '../components/TagMultiSelect.vue'
 
 const taskApi = createCrudApi('/personalTask')
 const statusApi = createCrudApi('/ptStatus')
@@ -27,15 +29,19 @@ watch(keyword, (v) => {
 })
 
 const filters = reactive({
-  statusId: '',
   priorityId: '',
   tagId: '',
   archivedStart: '',
   archivedEnd: '',
 })
 
-// 仅已标记为历史的状态进入状态筛选下拉
-const historyStatuses = computed(() => statuses.value.filter((s) => s.isHistory === 1))
+// 标签筛选为逗号分隔的标签id字符串，命中任一已选标签即显示
+const filterTagIds = computed(() =>
+  (filters.tagId || '')
+    .split(',')
+    .map((id) => id.trim())
+    .filter(Boolean),
+)
 
 const statusNameMap = computed(() => {
   const map = {}
@@ -118,7 +124,6 @@ async function loadData() {
 function resetFilters() {
   keyword.value = ''
   keywordEffective.value = ''
-  filters.statusId = ''
   filters.priorityId = ''
   filters.tagId = ''
   filters.archivedStart = ''
@@ -133,9 +138,11 @@ const filteredTasks = computed(() => {
       const content = (t.content || '').toLowerCase()
       if (!title.includes(kw) && !content.includes(kw)) return false
     }
-    if (filters.statusId && t.ptStatusId !== filters.statusId) return false
-    if (filters.priorityId && t.priorityId !== filters.priorityId) return false
-    if (filters.tagId && !tagIdsOf(t).includes(filters.tagId)) return false
+    if (filters.priorityId && String(t.priorityId) !== String(filters.priorityId)) return false
+    if (filterTagIds.value.length) {
+      const ids = tagIdsOf(t)
+      if (!filterTagIds.value.some((id) => ids.includes(id))) return false
+    }
     if (filters.archivedStart || filters.archivedEnd) {
       const refTime = t.archivedTime || t.updatedTime
       const d = refTime ? new Date(refTime) : null
@@ -264,30 +271,25 @@ onBeforeUnmount(() => {
             placeholder="匹配任务标题或内容"
           />
         </div>
-        <div class="filter-item">
-          <label class="filter-label">状态</label>
-          <select v-model="filters.statusId" class="filter-input">
-            <option value="">全部</option>
-            <option v-for="s in historyStatuses" :key="s.ptStatusId" :value="s.ptStatusId">
-              {{ s.ptStatusName }}
-            </option>
-          </select>
-        </div>
-        <div class="filter-item">
+        <div class="filter-item inline">
           <label class="filter-label">优先级</label>
-          <select v-model="filters.priorityId" class="filter-input">
-            <option value="">全部</option>
-            <option v-for="p in priorities" :key="p.priorityId" :value="p.priorityId">
-              {{ p.priorityName }}
-            </option>
-          </select>
+          <PrioritySelect
+            v-model="filters.priorityId"
+            :priorities="priorities"
+            input-id="history-filter-priority"
+            placeholder="全部优先级"
+          />
         </div>
-        <div class="filter-item">
+        <div class="filter-item inline">
           <label class="filter-label">标签</label>
-          <select v-model="filters.tagId" class="filter-input">
-            <option value="">全部</option>
-            <option v-for="t in tags" :key="t.tagId" :value="t.tagId">{{ t.tagName }}</option>
-          </select>
+          <TagMultiSelect
+            v-model="filters.tagId"
+            :tags="tags"
+            :allow-create="false"
+            input-id="history-filter-tag"
+            placeholder="全部标签"
+            @created="tags = $event"
+          />
         </div>
         <div class="filter-item date-range">
           <label class="filter-label">归档时间</label>
@@ -498,6 +500,24 @@ onBeforeUnmount(() => {
   display: flex;
   flex-direction: column;
   gap: 6px;
+}
+
+/* 与任务看板筛选框一致：标签与控件同行、固定宽度 */
+.filter-item.inline {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  width: 240px;
+}
+
+.filter-item.inline .filter-label {
+  flex-shrink: 0;
+}
+
+.filter-item.inline :deep(.priority-select),
+.filter-item.inline :deep(.tag-select-trigger) {
+  flex: 1;
+  min-width: 0;
 }
 
 .filter-item.keyword {

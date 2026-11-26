@@ -9,6 +9,7 @@ const props = defineProps({
   tags: { type: Array, default: () => [] },
   inputId: { type: String, default: '' },
   placeholder: { type: String, default: '请选择标签' },
+  allowCreate: { type: Boolean, default: true },
 })
 
 const emit = defineEmits(['update:modelValue', 'created'])
@@ -237,7 +238,7 @@ onBeforeUnmount(() => {
         <template v-else>
           <span class="count">已选 {{ selectedTags.length }} 个</span>
           <div class="footer-actions">
-            <button type="button" class="link-btn" @click="startCreate">新增标签</button>
+            <button v-if="allowCreate" type="button" class="link-btn" @click="startCreate">新增标签</button>
             <button type="button" class="link-btn" :disabled="!selectedTags.length" @click="clearAll">
               清空
             </button>

@@ -11,7 +11,6 @@ import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
 import java.time.ZoneId;
-import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
@@ -174,7 +173,7 @@ public class PersonalTaskController {
     }
 
     /**
-     * 查询历史任务：当前状态被标记为「计入历史回看」（is_history=1）且状态未被软删除的全部任务。
+     * 查询历史任务：仅状态为「已归档」的全部任务。
      * 排序：归档时间降序（空值排最后）→ 创建时间降序 → 更新时间降序。
      * 筛选、统计在前端完成，本期不分页。
      */
@@ -182,18 +181,8 @@ public class PersonalTaskController {
     public List<PersonalTask> history() {
         // 往日已完成的任务先自动归档
         autoArchiveCompletedTasks();
-        List<String> historyStatusIds = ptStatusService.lambdaQuery()
-                .eq(PtStatus::getDeleteStatus, 0)
-                .eq(PtStatus::getIsHistory, 1)
-                .list()
-                .stream()
-                .map(PtStatus::getPtStatusId)
-                .collect(Collectors.toList());
-        if (historyStatusIds.isEmpty()) {
-            return new ArrayList<>();
-        }
         return personalTaskService.lambdaQuery()
-                .in(PersonalTask::getPtStatusId, historyStatusIds)
+                .eq(PersonalTask::getPtStatusId, STATUS_ARCHIVED_ID)
                 .list()
                 .stream()
                 .sorted(Comparator
